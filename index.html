@@ -6,6 +6,7 @@
     <title>OddUnit</title>
     <link rel="stylesheet" href="style.css" />
   </head>
+
   <body>
     <header class="topbar">
       <div class="logo">OddUnit</div>
@@ -16,21 +17,26 @@
       </nav>
     </header>
 
-    <section class="hero">
-      <canvas id="three-canvas"></canvas>
-      <div class="ui">
+    <canvas id="three-canvas"></canvas>
+
+    <!-- always visible panel -->
+    <aside class="ui-panel">
+      <div class="copy-parallax" id="copyParallax">
         <div class="copy" id="copy">
           <div class="badge" id="badge">DROP 01</div>
-          <h1 id="title">ProtoBoy V4</h1>
-          <p id="desc">Next evolution toy. Smooth finish and attitude. Limited drops worldwide.</p>
+          <h1 id="title">ProtoBoy V3</h1>
+          <p id="desc">
+            Next evolution toy. Smooth finish and attitude. Limited drops
+            worldwide.
+          </p>
           <a class="buy-button" id="buy" href="#">BUY NOW</a>
         </div>
       </div>
-    
-      <div class="scroll-space"></div>
-    </section>
+    </aside>
 
-    <section class="scroll-space"></section>
+    <!-- only for scroll length -->
+    <div class="scroll-space"></div>
+
     <script type="module" src="main.js"></script>
   </body>
 </html>
