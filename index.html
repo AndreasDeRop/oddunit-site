@@ -3,38 +3,123 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OddUnit</title>
+    <title>ODD UNIT — Designer Toy Studio</title>
     <link rel="stylesheet" href="style.css" />
   </head>
 
   <body>
     <header class="topbar">
-      <div class="logo">OddUnit</div>
+      <div class="logo-mount" id="logoMount" aria-hidden="true"></div>
+      <!-- 
+      <select id="themeSelect" class="theme-select" aria-label="Theme">
+        <option value="lab">LAB (current)</option>
+        <option value="hanson">Hanson-ish (clean/typography)</option>
+        <option value="poster">Poster (hard/orange)</option>
+      </select> -->
+
       <nav>
-        <a href="#">About</a>
-        <a href="#">Drops</a>
-        <a href="#">Contact</a>
+        <a href="#about">About</a>
+        <a href="#drops">Drops</a>
+        <a href="#contact">Contact</a>
       </nav>
     </header>
 
-    <canvas id="three-canvas"></canvas>
+    <div class="landing" id="landing" aria-hidden="false">
+      <div class="landing-mark" id="landingMark">
+        <span class="plus landing-plus" data-corner="tl"></span>
+        <span class="plus landing-plus" data-corner="tr"></span>
+        <span class="plus landing-plus" data-corner="bl"></span>
+        <span class="plus landing-plus" data-corner="br"></span>
+      </div>
+    </div>
 
-    <!-- always visible panel -->
+    <img
+      class="logo logo-float"
+      id="brandLogo"
+      src="LogoGreen.png"
+      alt="ODD UNIT"
+      decoding="async"
+      fetchpriority="high"
+      style="opacity: 0"
+    />
+
+    <canvas id="three-canvas"></canvas>
+    <div id="canvasReveal" class="canvas-reveal" aria-hidden="true"></div>
+
+    <div class="scene-frame" aria-hidden="true">
+      <span class="plus plus--tl"></span>
+      <span class="plus plus--tr"></span>
+      <span class="plus plus--bl"></span>
+      <span class="plus plus--br"></span>
+    </div>
+
     <aside class="ui-panel">
-      <div class="copy-parallax" id="copyParallax">
-        <div class="copy" id="copy">
-          <div class="badge" id="badge">DROP 01</div>
-          <h1 id="title">ProtoBoy V3</h1>
-          <p id="desc">
-            Next evolution toy. Smooth finish and attitude. Limited drops
-            worldwide.
-          </p>
-          <a class="buy-button" id="buy" href="#">BUY NOW</a>
+      <div class="copy">
+        <button
+          class="sheet-handle"
+          id="sheetToggle"
+          type="button"
+          aria-expanded="false"
+        >
+          <span class="sheet-title" id="sheetTitle">ProtoBoy V3</span>
+          <span class="sheet-chevron" aria-hidden="true"></span>
+        </button>
+
+        <div class="sheet-body">
+          <div class="drop-meta">
+            <div class="meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">BATCH</span>
+                <span class="meta-value" id="badge">DROP 01</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">EDITION</span>
+                <span class="meta-value">01/200</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-info">
+            <h1 id="title">ProtoBoy V3</h1>
+            <p id="desc">...</p>
+          </div>
+
+          <a href="#" class="buy-button" id="buy">
+            <span>BUY NOW</span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M3 8H13M13 8L9 4M13 8L9 12"
+                stroke="currentColor"
+                stroke-width="1.5"
+              />
+            </svg>
+          </a>
+
+          <div class="drop-indicator">
+            <div class="dot active" data-drop="0"></div>
+            <div class="dot" data-drop="1"></div>
+          </div>
         </div>
       </div>
     </aside>
 
-    <!-- only for scroll length -->
+    <div class="right-ticker" aria-hidden="true">
+      <div class="right-ticker__track" id="rightTickerTrack">
+        <div class="right-ticker__inner" id="rightTickerInner">
+          <span>BEING ODD IS PERFECT.</span>
+          <span>BEING PERFECT IS ODD.</span>
+          <span>BEING ODD IS PERFECT.</span>
+          <span>BEING PERFECT IS ODD.</span>
+        </div>
+      </div>
+    </div>
+
     <div class="scroll-space"></div>
 
     <script type="module" src="main.js"></script>
