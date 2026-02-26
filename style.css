@@ -654,7 +654,7 @@ body.intro-done .scene-frame .plus {
     height: auto;
     padding: var(--space-5);
     background: transparent;
-    border-top: 1px solid var(--border-primary);
+    border-top: 0;
     overflow: hidden;
     pointer-events: none;
     z-index: 30;
