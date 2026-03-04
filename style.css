@@ -465,9 +465,9 @@ html[data-theme="hanson"] {
 }
 
 html[data-theme="poster"] {
-  --bg-primary: #f56a29;
-  --bg-secondary: #f56a29;
-  --bg-overlay: #f56a29;
+  --bg-primary: #ff6b00;
+  --bg-secondary: #ff6b00;
+  --bg-overlay: #ff6b00;
 
   --text-primary: #0a0a0a;
   --text-secondary: rgba(10, 10, 10, 0.72);
@@ -476,7 +476,7 @@ html[data-theme="poster"] {
   --border-primary: rgba(10, 10, 10, 0.18);
   --border-secondary: rgba(10, 10, 10, 0.1);
 
-  --topbar-bg: #f56a29;
+  --topbar-bg: #ff6b00;
   --topbar-text: #0a0a0a;
   --topbar-link: rgba(10, 10, 10, 0.75);
   --topbar-border: rgba(10, 10, 10, 0.18);
@@ -807,4 +807,60 @@ button:focus-visible {
 .landing-plus,
 .scene-frame .plus {
   will-change: transform, opacity;
+}
+
+/* ───────────────────────────────────────────── */
+/* CLEAN 3D-print: bottom->top + L->R per layer  */
+/* ───────────────────────────────────────────── */
+
+#logoPrintFx {
+  opacity: 0;
+}
+
+.logo-printfx {
+  --py: 0; /* 0..1 height progress */
+  --hx: 0; /* 0..1 scan progress */
+  --layerH: 1%; /* set from JS: 100/LAYERS */
+
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 80;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform-origin: top left;
+}
+
+/* both children share the exact same logo */
+.logo-printfx__printed,
+.logo-printfx__layer {
+  position: absolute;
+  inset: 0;
+
+  background-image: var(--logo-url);
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: left top;
+}
+
+/* fully printed area (everything below current layer band) */
+.logo-printfx__printed {
+  -webkit-clip-path: inset(calc((1 - var(--py)) * 100% + var(--layerH)) 0 0 0);
+  clip-path: inset(calc((1 - var(--py)) * 100% + var(--layerH)) 0 0 0);
+}
+
+/* current layer band: correct Y band + left->right reveal */
+.logo-printfx__layer {
+  -webkit-clip-path: inset(
+    calc((1 - var(--py)) * 100%) calc((1 - var(--hx)) * 100%)
+      calc(var(--py) * 100% - var(--layerH)) 0
+  );
+  clip-path: inset(
+    calc((1 - var(--py)) * 100%) calc((1 - var(--hx)) * 100%)
+      calc(var(--py) * 100% - var(--layerH)) 0
+  );
+}
+.logo-printfx__layer {
+  opacity: 0.95;
+  filter: brightness(1.06);
 }

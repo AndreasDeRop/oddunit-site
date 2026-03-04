@@ -12,7 +12,7 @@ const BREAKPOINT = 900;
 const THEMES = {
   lab: { logo: "LogoGreen.png", background: 0x0a0a0a },
   hanson: { logo: "LogoBlack.png", background: 0xf6f6f4 },
-  poster: { logo: "LogoBlack.png", background: 0xf56a29 },
+  poster: { logo: "LogoBlack.png", background: 0xff6b00 },
 };
 
 const TOYS = [
@@ -52,6 +52,9 @@ const landingPlusEls = Array.from(document.querySelectorAll(".landing-plus"));
 
 const brandLogoEl = document.getElementById("brandLogo");
 const logoMountEl = document.getElementById("logoMount");
+
+const logoPrintFxEl = document.getElementById("logoPrintFx");
+
 let logoShown = false;
 const mainPlusMap = {
   tl: document.querySelector(".plus--tl"),
@@ -95,7 +98,7 @@ function applyTheme(name, sceneRef, rendererRef) {
 
   document.documentElement.setAttribute("data-theme", name);
   if (brandLogoEl) brandLogoEl.src = theme.logo;
-
+  syncLogoPrintFx();
   if (sceneRef?.background?.isColor) sceneRef.background.setHex(theme.background);
   else if (sceneRef) sceneRef.background = new THREE.Color(theme.background);
 
@@ -150,7 +153,20 @@ function syncSheetTitle(text) {
 sheetToggle?.addEventListener("click", () => {
   setSheetOpen(!document.body.classList.contains("sheet-open"));
 });
+/* ─────────────────────────────────────────────────────────── */
+/* PrintLogo */
+/* ─────────────────────────────────────────────────────────── */
 
+function syncLogoPrintFx() {
+  if (!logoPrintFxEl || !brandLogoEl) return;
+
+  const r = brandLogoEl.getBoundingClientRect();
+  logoPrintFxEl.style.width = `${Math.max(1, r.width)}px`;
+  logoPrintFxEl.style.height = `${Math.max(1, r.height)}px`;
+
+  const src = brandLogoEl.currentSrc || brandLogoEl.src;
+  logoPrintFxEl.style.setProperty("--logo-url", `url("${src}")`);
+}
 /* ─────────────────────────────────────────────────────────── */
 /* Three.js */
 /* ─────────────────────────────────────────────────────────── */
@@ -522,13 +538,13 @@ function resetLandingStates() {
   gsap.set(".ui-panel", { opacity: 0, y: 14 });
   gsap.set(".right-ticker", { opacity: 0 });
   gsap.set("header.topbar nav", { opacity: 0 });
-  gsap.set("#themeSelect", { opacity: 0 });
+  gsap.set("#themeSelect", { opacity: 0 }); 
 
   gsap.set(canvasRevealEl, { opacity: 1 });
-
-  // stay hidden until bootReady places them
+gsap.set(logoPrintFxEl, { opacity: 0, "--py": 0, "--hx": 0, clearProps: "transform" });  // stay hidden until bootReady places them
   gsap.set(landingPlusEls, { opacity: 0, clearProps: "transform" });
   gsap.set(brandLogoEl, { opacity: 0 });
+
   logoShown = false;
 }
 
@@ -547,6 +563,8 @@ function syncLogoRatioAndMountWidth() {
       `${brandLogoEl.naturalWidth} / ${brandLogoEl.naturalHeight}`
     );
   }
+  syncLogoPrintFx();
+
 }
 
 function dockLogo() {
@@ -581,16 +599,24 @@ function playLandingIntro() {
   lockScroll(true);
   resetLandingStates();
   syncLogoRatioAndMountWidth();
+  syncLogoPrintFx();
 
-  // make sure logo is floating in body during intro
-  if (!brandLogoEl.classList.contains("logo-float")) {
+  // ensure real logo is floating in body during intro
+  if (brandLogoEl && !brandLogoEl.classList.contains("logo-float")) {
     document.body.appendChild(brandLogoEl);
     brandLogoEl.classList.add("logo-float");
   }
 
+  // ensure print fx exists in body
+  if (logoPrintFxEl && !document.body.contains(logoPrintFxEl)) {
+    document.body.appendChild(logoPrintFxEl);
+  }
+  logoPrintFxEl.classList.add("logo-float");
+
   const mountRect = logoMountEl.getBoundingClientRect();
   const landingRect = landingMarkEl.getBoundingClientRect();
-  logoShown = true;
+
+  // reset before measuring
   gsap.set(brandLogoEl, { x: 0, y: 0, scale: 1, clearProps: "transform" });
   const baseRect = brandLogoEl.getBoundingClientRect();
 
@@ -601,22 +627,36 @@ function playLandingIntro() {
   const startX = landingRect.left;
   const startY = landingRect.top;
 
+  // hide real logo until docking
   gsap.set(brandLogoEl, { opacity: 0 });
-  gsap.set(landingPlusEls, { opacity: 0 });
 
-  // show logo + landing pluses only now (no jumping)
-  gsap.set(brandLogoEl, {
+  // show landing pluses
+  gsap.set(landingPlusEls, { opacity: 0.95 });
+
+  // position print fx at landing
+  gsap.set(logoPrintFxEl, {
+    opacity: 1,
     x: startX,
     y: startY,
     scale: startScale,
     transformOrigin: "top left",
-    opacity: 1,
+    "--py": 0, // how much of the logo height the landing geometry covers (0-1)
+    "--hx": 0,
   });
-  gsap.set(landingPlusEls, { opacity: 0.95 });
 
+  // print config
+  const LAYERS = 4; 
+  const TIME_PER_LAYER = 0.6; 
+  const PRINT_DUR = LAYERS * TIME_PER_LAYER;     // total print time
   const MOVE_DUR = 1.4;
-  const XFADE = Math.max(0, MOVE_DUR - 0.12);
 
+  // IMPORTANT: set band thickness as % so math never goes negative
+  logoPrintFxEl.style.setProperty("--layerH", `${100 / LAYERS}%`);
+
+  const MOVE_START = PRINT_DUR;
+  const XFADE = MOVE_START + Math.max(0, MOVE_DUR - 0.12);
+
+  const printState = { t: 0 };
 
   introTL = gsap.timeline({
     onComplete: () => {
@@ -625,6 +665,7 @@ function playLandingIntro() {
       gsap.set("#landing", { autoAlpha: 0 });
       landingEl?.setAttribute("aria-hidden", "true");
 
+      gsap.set(logoPrintFxEl, { opacity: 0 });
       dockLogo();
 
       lockScroll(false);
@@ -636,11 +677,8 @@ function playLandingIntro() {
 
       if (!mainBooted) {
         mainBooted = true;
-
-        // Type ONCE here, never again for drop 0
         typeSection(0);
         typedOnce[0] = true;
-
         startTicker();
       }
 
@@ -648,13 +686,39 @@ function playLandingIntro() {
     },
   });
 
+  // PRINT: bottom->top, each layer scans left->right
+  introTL.to(printState, {
+    t: LAYERS,
+    duration: PRINT_DUR,
+    ease: "none",
+    onUpdate: () => {
+      const t = printState.t;
+      const layerIdx = Math.floor(t);
+      const frac = t - layerIdx;
+
+      if (layerIdx >= LAYERS) {
+        logoPrintFxEl.style.setProperty("--py", "1");
+        logoPrintFxEl.style.setProperty("--hx", "1");
+        return;
+      }
+
+      // current layer height is fixed until layer completes
+      const py = (layerIdx + 1) / LAYERS;
+      const hx = frac; // left->right scan within layer
+
+      logoPrintFxEl.style.setProperty("--py", py.toFixed(4));
+      logoPrintFxEl.style.setProperty("--hx", hx.toFixed(4));
+    },
+  }, 0);
+
+  // MOVE to topbar
   introTL.to(
-    brandLogoEl,
+    logoPrintFxEl,
     { x: endX, y: endY, scale: 1, duration: MOVE_DUR, ease: "power2.inOut" },
-    0
+    MOVE_START
   );
 
-  // move landing pluses to the scene frame corner pluses
+  // move landing pluses to scene-frame pluses
   landingPlusEls.forEach((p) => {
     const corner = p.getAttribute("data-corner");
     const target = mainPlusMap[corner];
@@ -666,25 +730,24 @@ function playLandingIntro() {
     introTL.to(
       p,
       { x: b.left - a.left, y: b.top - a.top, duration: MOVE_DUR, ease: "power2.inOut" },
-      0
+      MOVE_START
     );
   });
 
-  // UI fade-in
-  introTL.to(".scene-frame", { opacity: 1, duration: 0.25, ease: "power1.out" }, 0.24);
-  introTL.to(".ui-panel", { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 0.28);
-  introTL.to(".right-ticker", { opacity: 1, duration: 0.25, ease: "power1.out" }, 0.34);
-  introTL.to("header.topbar nav", { opacity: 1, duration: 0.25, ease: "power1.out" }, 0.32);
-  introTL.to("#themeSelect", { opacity: 1, duration: 0.25, ease: "power1.out" }, 0.32);
+  // UI fade-in + canvas reveal
+  introTL.to(".scene-frame", { opacity: 1, duration: 0.25, ease: "power1.out" }, MOVE_START + 0.24);
+  introTL.to(".ui-panel", { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, MOVE_START + 0.28);
+  introTL.to(".right-ticker", { opacity: 1, duration: 0.25, ease: "power1.out" }, MOVE_START + 0.34);
+  introTL.to("header.topbar nav", { opacity: 1, duration: 0.25, ease: "power1.out" }, MOVE_START + 0.32);
+  introTL.to("#themeSelect", { opacity: 1, duration: 0.25, ease: "power1.out" }, MOVE_START + 0.32);
 
-  // reveal canvas
-  introTL.to(canvasRevealEl, { opacity: 0, duration: 0.35, ease: "power1.out" }, 0.28);
+  introTL.to(canvasRevealEl, { opacity: 0, duration: 0.35, ease: "power1.out" }, MOVE_START + 0.28);
 
-  // crossfade plus sets (landing -> scene)
+  // crossfade plus sets
   introTL.to(landingPlusEls, { opacity: 0, duration: 0.18, ease: "none" }, XFADE);
   introTL.to(".scene-frame .plus", { opacity: 1, duration: 0.18, ease: "none" }, XFADE);
 
-  introTL.set("#landing", { autoAlpha: 0 }, 1.15);
+  introTL.set("#landing", { autoAlpha: 0 }, MOVE_START + 1.15);
 }
 
 /* ─────────────────────────────────────────────────────────── */
@@ -708,10 +771,10 @@ function handleResize() {
   if (modelsReady) updateLayout();
 
   syncLogoRatioAndMountWidth();
-
-  if (!introPlayed) {
-    // your existing pre-intro positioning...
-  }
+  syncLogoPrintFx();
+  // if (!introPlayed) {
+  //   // your existing pre-intro positioning...
+  // }
 
   ScrollTrigger.refresh();
 }
@@ -798,3 +861,4 @@ function animate() {
   requestAnimationFrame(animate);
 }
 animate();
+

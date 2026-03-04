@@ -10,12 +10,12 @@
   <body>
     <header class="topbar">
       <div class="logo-mount" id="logoMount" aria-hidden="true"></div>
-      <!-- 
+
       <select id="themeSelect" class="theme-select" aria-label="Theme">
         <option value="lab">LAB (current)</option>
         <option value="hanson">Hanson-ish (clean/typography)</option>
         <option value="poster">Poster (hard/orange)</option>
-      </select> -->
+      </select>
 
       <nav>
         <a href="#about">About</a>
@@ -42,6 +42,11 @@
       fetchpriority="high"
       style="opacity: 0"
     />
+
+    <div id="logoPrintFx" class="logo-printfx logo-float" aria-hidden="true">
+      <div class="logo-printfx__printed" aria-hidden="true"></div>
+      <div class="logo-printfx__layer" aria-hidden="true"></div>
+    </div>
 
     <canvas id="three-canvas"></canvas>
     <div id="canvasReveal" class="canvas-reveal" aria-hidden="true"></div>
