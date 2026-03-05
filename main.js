@@ -1,36 +1,25 @@
 import gsap from "https://esm.sh/gsap@3.12.2";
 
-const brandLogoEl = document.getElementById("brandLogo");
-const logoMountEl = document.getElementById("logoMount");
-const logoPrintFxEl = document.getElementById("logoPrintFx");
-
 const landingEl = document.getElementById("landing");
 const landingMarkEl = document.getElementById("landingMark");
 const landingPlusEls = Array.from(document.querySelectorAll(".landing-plus"));
 
-const heroEl = document.getElementById("hero");
+const brandLogoEl = document.getElementById("brandLogo");
+const logoMountEl = document.getElementById("logoMount");
+const logoPrintFxEl = document.getElementById("logoPrintFx");
 
-const heroStageEl = document.getElementById("heroStage");
-const heroCanvasEl = document.getElementById("heroCanvas");
+const heroPlusMap = {
+  tl: document.querySelector(".hero-frame .fp-tl"),
+  tr: document.querySelector(".hero-frame .fp-tr"),
+  bl: document.querySelector(".hero-frame .fp-bl"),
+  br: document.querySelector(".hero-frame .fp-br"),
+};
 
-let bootReady = false;
 let introPlayed = false;
 
 let prevOverflowHtml = "";
 let prevOverflowBody = "";
-
-/* ✅ SCALE FIXED 1920x1080 CANVAS TO AVAILABLE HERO STAGE */
-function fitHeroCanvas() {
-  if (!heroStageEl || !heroCanvasEl) return;
-
-  const r = heroStageEl.getBoundingClientRect();
-  const artW = 1920;
-  const artH = 1080;
-
-  const scale = Math.min(r.width / artW, r.height / artH);
-
-  document.documentElement.style.setProperty("--canvasScale", String(scale));
-}
+let prevPadRight = "";
 
 function lockScroll(lock) {
   const sbw = window.innerWidth - document.documentElement.clientWidth;
@@ -38,6 +27,7 @@ function lockScroll(lock) {
   if (lock) {
     prevOverflowHtml = document.documentElement.style.overflow;
     prevOverflowBody = document.body.style.overflow;
+    prevPadRight = document.documentElement.style.paddingRight;
 
     document.documentElement.style.paddingRight = `${sbw}px`;
     document.documentElement.style.overflow = "hidden";
@@ -48,21 +38,19 @@ function lockScroll(lock) {
 
   document.documentElement.style.overflow = prevOverflowHtml || "";
   document.body.style.overflow = prevOverflowBody || "";
-  document.documentElement.style.paddingRight = "";
+  document.documentElement.style.paddingRight = prevPadRight || "";
+  window.scrollTo(0, 0);
 }
 
-function syncLogoPrintFx() {
-  if (!logoPrintFxEl || !brandLogoEl) return;
-
-  const r = brandLogoEl.getBoundingClientRect();
-  logoPrintFxEl.style.width = `${Math.max(1, r.width)}px`;
-  logoPrintFxEl.style.height = `${Math.max(1, r.height)}px`;
-
+function syncLogoUrl() {
+  if (!brandLogoEl) return;
   const src = brandLogoEl.currentSrc || brandLogoEl.src;
-  logoPrintFxEl.style.setProperty("--logo-url", `url("${src}")`);
+
+  if (logoPrintFxEl) logoPrintFxEl.style.setProperty("--logo-url", `url("${src}")`);
+  if (logoMountEl) logoMountEl.style.setProperty("--logo-url", `url("${src}")`);
 }
 
-function syncLogoRatioAndMountWidth() {
+function syncMountSize() {
   if (!brandLogoEl || !logoMountEl) return;
 
   gsap.set(brandLogoEl, { x: 0, y: 0, scale: 1, clearProps: "transform" });
@@ -77,65 +65,64 @@ function syncLogoRatioAndMountWidth() {
       `${brandLogoEl.naturalWidth} / ${brandLogoEl.naturalHeight}`
     );
   }
-
-  syncLogoPrintFx();
 }
 
-function resetLandingStates() {
-  document.body.classList.remove("intro-done");
-
-  gsap.set(landingEl, { autoAlpha: 1 });
-  landingEl?.setAttribute("aria-hidden", "false");
-
-  gsap.set(heroEl, { autoAlpha: 0 });
-  heroEl?.setAttribute("aria-hidden", "true");
-
-  gsap.set(logoPrintFxEl, { opacity: 0, "--py": 0, "--hx": 0, clearProps: "transform" });
-  gsap.set(landingPlusEls, { opacity: 0, clearProps: "transform" });
-  gsap.set(brandLogoEl, { opacity: 0 });
-
-  fitHeroCanvas();
+function syncPrintFxSize() {
+  if (!logoPrintFxEl || !brandLogoEl) return;
+  const r = brandLogoEl.getBoundingClientRect();
+  logoPrintFxEl.style.width = `${Math.max(1, r.width)}px`;
+  logoPrintFxEl.style.height = `${Math.max(1, r.height)}px`;
 }
 
-function dockLogoInvisible() {
-  if (!brandLogoEl || !logoMountEl) return;
-  logoMountEl.appendChild(brandLogoEl);
-  brandLogoEl.classList.remove("logo-float");
-  gsap.set(brandLogoEl, { clearProps: "transform", opacity: 0 });
+function resetStates() {
+  gsap.set(landingEl, { autoAlpha: 1, "--landingA": 1 });
+  gsap.set(landingPlusEls, { opacity: 0, x: 0, y: 0, clearProps: "transform" });
+
+  gsap.set(".hero-frame .frame-plus", { opacity: 0 });
+  gsap.set(logoMountEl, { opacity: 0 });
+
+  gsap.set(brandLogoEl, { opacity: 0, x: 0, y: 0, scale: 1, clearProps: "transform" });
+  gsap.set(logoPrintFxEl, {
+    opacity: 0,
+    "--py": 0,
+    "--hx": 0,
+    x: 0,
+    y: 0,
+    scale: 1,
+    clearProps: "transform",
+  });
 }
 
 function playIntro() {
-  if (introPlayed || !bootReady) return;
+  if (introPlayed) return;
   introPlayed = true;
 
   lockScroll(true);
-  resetLandingStates();
-  syncLogoRatioAndMountWidth();
-
-  if (brandLogoEl && !brandLogoEl.classList.contains("logo-float")) {
-    document.body.appendChild(brandLogoEl);
-    brandLogoEl.classList.add("logo-float");
-  }
+  resetStates();
 
   if (logoPrintFxEl && !document.body.contains(logoPrintFxEl)) {
     document.body.appendChild(logoPrintFxEl);
   }
   logoPrintFxEl.classList.add("logo-float");
 
-  const mountRect = logoMountEl.getBoundingClientRect();
-  const landingRect = landingMarkEl.getBoundingClientRect();
+  syncLogoUrl();
+  syncMountSize();
+  syncPrintFxSize();
 
-  gsap.set(brandLogoEl, { x: 0, y: 0, scale: 1, clearProps: "transform" });
+  const landingRect = landingMarkEl.getBoundingClientRect();
+  const mountRect = logoMountEl.getBoundingClientRect();
   const baseRect = brandLogoEl.getBoundingClientRect();
+
+  const startScale = landingRect.width / Math.max(1, baseRect.width);
+
+  const startW = baseRect.width * startScale;
+  const startH = baseRect.height * startScale;
+  const startX = landingRect.left + (landingRect.width - startW) / 2;
+  const startY = landingRect.top + (landingRect.height - startH) / 2;
 
   const endX = mountRect.left;
   const endY = mountRect.top;
 
-  const startScale = landingRect.width / Math.max(1, baseRect.width);
-  const startX = landingRect.left;
-  const startY = landingRect.top;
-
-  gsap.set(brandLogoEl, { opacity: 0 });
   gsap.set(landingPlusEls, { opacity: 0.95 });
 
   gsap.set(logoPrintFxEl, {
@@ -155,26 +142,20 @@ function playIntro() {
 
   logoPrintFxEl.style.setProperty("--layerH", `${100 / LAYERS}%`);
 
+  const MOVE_START = PRINT_DUR;
+  const XFADE = MOVE_START + Math.max(0, MOVE_DUR - 0.12);
+
   const printState = { t: 0 };
 
   const tl = gsap.timeline({
     onComplete: () => {
-      document.body.classList.add("intro-done");
-
-      gsap.set(landingEl, { autoAlpha: 0 });
-      landingEl?.setAttribute("aria-hidden", "true");
-
       gsap.set(logoPrintFxEl, { opacity: 0 });
-      dockLogoInvisible();
-
-      gsap.set(heroEl, { autoAlpha: 1 });
-      heroEl?.setAttribute("aria-hidden", "false");
-
-      fitHeroCanvas(); /* ✅ ensure perfect fit when hero appears */
+      gsap.set(logoMountEl, { opacity: 1 });
       lockScroll(false);
     },
   });
 
+  // PRINT scan
   tl.to(
     printState,
     {
@@ -192,38 +173,54 @@ function playIntro() {
           return;
         }
 
-        const py = (layerIdx + 1) / LAYERS;
-        const hx = frac;
-
-        logoPrintFxEl.style.setProperty("--py", py.toFixed(4));
-        logoPrintFxEl.style.setProperty("--hx", hx.toFixed(4));
+        logoPrintFxEl.style.setProperty("--py", ((layerIdx + 1) / LAYERS).toFixed(4));
+        logoPrintFxEl.style.setProperty("--hx", frac.toFixed(4));
       },
     },
     0
   );
 
+  // MOVE logo to topbar
   tl.to(
     logoPrintFxEl,
     { x: endX, y: endY, scale: 1, duration: MOVE_DUR, ease: "power2.inOut" },
-    PRINT_DUR
+    MOVE_START
   );
 
-  tl.to(landingPlusEls, { opacity: 0, duration: 0.2, ease: "none" }, PRINT_DUR + MOVE_DUR - 0.2);
+  // MOVE pluses
+  landingPlusEls.forEach((p) => {
+    const corner = p.getAttribute("data-corner");
+    const target = heroPlusMap[corner];
+    if (!target) return;
+
+    const a = p.getBoundingClientRect();
+    const b = target.getBoundingClientRect();
+
+    tl.to(
+      p,
+      { x: b.left - a.left, y: b.top - a.top, duration: MOVE_DUR, ease: "power2.inOut" },
+      MOVE_START
+    );
+  });
+
+  // ✅ ONLY fade the orange background while the move happens
+  tl.to(
+    landingEl,
+    { "--landingA": 0, duration: MOVE_DUR * 0.9, ease: "power1.out" },
+    MOVE_START + 0.05
+  );
+
+  // crossfade plus sets near the end of the move
+  tl.to(landingPlusEls, { opacity: 0, duration: 0.18, ease: "none" }, XFADE);
+  tl.to(".hero-frame .frame-plus", { opacity: 1, duration: 0.18, ease: "none" }, XFADE);
+
+  // hide overlay after background is basically gone
+  tl.to(landingEl, { autoAlpha: 0, duration: 0.12, ease: "none" }, XFADE + 0.18);
 }
 
-function handleResize() {
-  syncLogoRatioAndMountWidth();
-  syncLogoPrintFx();
-  fitHeroCanvas(); /* ✅ always keep layout identical */
-}
-
-window.addEventListener("resize", handleResize);
-
-(async function boot() {
-  resetLandingStates();
-
+async function boot() {
   try {
-    await brandLogoEl.decode();
+    await brandLogoEl?.decode();
   } catch {}
 
   if (document.fonts?.ready) {
@@ -232,8 +229,17 @@ window.addEventListener("resize", handleResize);
     } catch {}
   }
 
-  bootReady = true;
-  handleResize();
+  syncLogoUrl();
+  syncMountSize();
+  syncPrintFxSize();
 
   requestAnimationFrame(() => requestAnimationFrame(playIntro));
-})();
+}
+
+window.addEventListener("resize", () => {
+  syncLogoUrl();
+  syncMountSize();
+  syncPrintFxSize();
+});
+
+boot();

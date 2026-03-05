@@ -10,6 +10,7 @@ html {
 
   --bg: #070707;
   --orange: #ff6b00;
+  --orange-rgb: 255 107 0;
   --purple: #8a2be2;
 
   --ink: #171717;
@@ -22,15 +23,12 @@ html {
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --logo-ratio: 4/1;
 
-  /* artboard */
   --artW: 1920px;
   --artH: 1080px;
 
-  /* keep layout deterministic on mobile addressbar changes */
   --vh: 100vh;
 }
 
-/* Prefer stable viewport height if available */
 @supports (height: 100svh) {
   :root {
     --vh: 100svh;
@@ -56,7 +54,7 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────── */
-/* GRID METRICS (LOCKED POSTER FRAME: always 16:9 like artboard) */
+/* GRID METRICS (LOCKED POSTER FRAME) */
 /* ─────────────────────────────────────────────────────────── */
 
 :root {
@@ -85,39 +83,40 @@ body {
   --OY: var(--y0);
 }
 
-/* micro grid */
+/* micro grid (always on, subtle) */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 9;
-  opacity: 0;
-  transition: opacity 0.25s var(--ease);
+  opacity: 0.3;
   background-image:
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 107, 0, 0.06) 0px,
-      transparent 1px,
-      transparent 64px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 107, 0, 0.06) 0px,
-      transparent 1px,
-      transparent 64px
-    );
+    linear-gradient(rgba(255, 107, 0, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 107, 0, 0.07) 1px, transparent 1px),
+    linear-gradient(rgba(255, 107, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 107, 0, 0.03) 1px, transparent 1px);
+
+  background-size:
+    32px 32px,
+    32px 32px,
+    20px 20px,
+    20px 20px;
+
+  background-position:
+    0 0,
+    0 0,
+    0 0,
+    0 0;
 }
 
-/* major grid lines */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 60;
-  opacity: 0;
-  transition: opacity 0.25s var(--ease);
+  opacity: 1;
   background:
     linear-gradient(
       to right,
@@ -177,12 +176,7 @@ body::after {
     );
 }
 
-body.intro-done::before,
-body.intro-done::after {
-  opacity: 1;
-}
-
-/* TOPBAR wrapper */
+/* TOPBAR */
 .topbar {
   position: fixed;
   inset: 0 0 auto 0;
@@ -195,12 +189,44 @@ body.intro-done::after {
   pointer-events: none;
 }
 
+/* logo centered in left-top square */
 .logo-mount {
+  position: fixed;
+  left: calc((var(--x0) + var(--x25)) / 2);
+  top: calc(var(--y0) / 2);
+  transform: translate(-50%, -50%);
+  z-index: 55;
+
+  width: 180px;
   height: 44px;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
   opacity: 0;
+
+  pointer-events: none;
+  isolation: isolate;
+
+  --logo-url: none;
+}
+
+.logo-mount img {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.logo-mount::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--orange);
+
+  -webkit-mask-image: var(--logo-url);
+  mask-image: var(--logo-url);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
 }
 
 .logo {
@@ -270,29 +296,41 @@ body.intro-done::after {
   z-index: 50;
 }
 
+/* ─────────────────────────────────────────────────────────── */
 /* INTRO */
+/* ─────────────────────────────────────────────────────────── */
+
 #brandLogo {
   opacity: 0;
 }
+
 .landing {
+  --landingA: 1;
   position: fixed;
   inset: 0;
   z-index: 70;
   display: grid;
   place-items: center;
-  background: var(--orange);
+
+  /* only this fades */
+  background: rgb(var(--orange-rgb) / var(--landingA));
+
   pointer-events: none;
 }
+
 .landing-mark {
   position: relative;
   width: clamp(240px, 42vw, 560px);
   aspect-ratio: var(--logo-ratio);
 }
+
+/* landing pluses: black */
 .plus {
   position: absolute;
   width: 28px;
   height: 28px;
-  opacity: 0.9;
+  opacity: 0.95;
+  color: var(--bg);
 }
 .plus::before,
 .plus::after {
@@ -301,6 +339,7 @@ body.intro-done::after {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  background: currentColor;
 }
 .plus::before {
   width: 22px;
@@ -310,9 +349,9 @@ body.intro-done::after {
   width: 4px;
   height: 22px;
 }
+
 .landing-plus {
   opacity: 0;
-  color: var(--bg);
 }
 .landing-plus[data-corner="tl"] {
   top: -44px;
@@ -335,10 +374,12 @@ body.intro-done::after {
 #logoPrintFx {
   opacity: 0;
 }
+
 .logo-printfx {
   --py: 0;
   --hx: 0;
   --layerH: 1%;
+
   position: fixed;
   left: 0;
   top: 0;
@@ -347,19 +388,29 @@ body.intro-done::after {
   will-change: transform, opacity;
   transform-origin: top left;
 }
+
 .logo-printfx__printed,
 .logo-printfx__layer {
   position: absolute;
   inset: 0;
-  background-image: var(--logo-url);
-  background-repeat: no-repeat;
-  background-size: contain;
-  background-position: left top;
+
+  background: var(--bg);
+
+  -webkit-mask-image: var(--logo-url);
+  mask-image: var(--logo-url);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
 }
+
 .logo-printfx__printed {
   -webkit-clip-path: inset(calc((1 - var(--py)) * 100% + var(--layerH)) 0 0 0);
   clip-path: inset(calc((1 - var(--py)) * 100% + var(--layerH)) 0 0 0);
 }
+
 .logo-printfx__layer {
   -webkit-clip-path: inset(
     calc((1 - var(--py)) * 100%) calc((1 - var(--hx)) * 100%)
@@ -373,23 +424,18 @@ body.intro-done::after {
   filter: brightness(1.06);
 }
 
-/* HERO */
+/* ─────────────────────────────────────────────────────────── */
+/* HERO (always there) */
+/* ─────────────────────────────────────────────────────────── */
+
 .hero {
   position: relative;
   height: var(--vh);
   min-height: 720px;
   padding-top: var(--topbar-h);
-
-  /* ✅ THIS is the fix: hero above grid (60) but below landing (70) */
   z-index: 65;
-
-  opacity: 0;
-  pointer-events: none;
-}
-body.intro-done .hero {
   opacity: 1;
   pointer-events: auto;
-  transition: opacity 0.25s var(--ease);
 }
 
 .hero-frame {
@@ -401,10 +447,13 @@ body.intro-done .hero {
   z-index: 46;
   pointer-events: none;
 }
+
+/* home corner pluses exist from start but start invisible (JS crossfades them) */
 .frame-plus {
   position: absolute;
   width: 28px;
   height: 28px;
+  opacity: 0;
 }
 .frame-plus::before,
 .frame-plus::after {
@@ -423,6 +472,7 @@ body.intro-done .hero {
   width: 4px;
   height: 22px;
 }
+
 .fp-tl {
   top: -14px;
   left: -14px;
@@ -446,7 +496,7 @@ body.intro-done .hero {
   z-index: 47;
 }
 
-/* ===== YOUR ARTBOARD PLACEMENT (unchanged) ===== */
+/* ===== your existing hero layout (unchanged) ===== */
 .hero-word,
 .hero-dark__creatieve,
 .hero-dark__design {
@@ -480,17 +530,39 @@ body.intro-done .hero {
   top: calc(var(--OY) + (570px * var(--s)));
 }
 
-.word-stu .dot {
-  display: inline-block;
-  transform: translateY(-0.02em);
+/* STU punctuation: aligned with STU line, star above dot, tight */
+.word-stu .punct {
+  position: absolute;
+  left: 100%;
+
+  /* center the mark on the STU line-height (0.85em / 2 = 0.425em) */
+  top: 0.3em;
+
+  width: 0.85em;
+  height: 0.85em;
+
+  /* small horizontal gap + vertical centering */
+  transform: translate(0.06em, -50%);
+  pointer-events: none;
 }
-.word-stu .star {
-  display: inline-block;
-  margin-left: calc(18px * var(--s));
-  transform: translateY(-0.18em);
+
+.word-stu .punct .star,
+.word-stu .punct .dot {
+  position: absolute;
+  left: 25%;
+  transform: translateX(-50%);
+  line-height: 1;
+}
+
+.word-stu .punct .star {
+  top: 0;
   font-size: 0.62em;
 }
 
+.word-stu .punct .dot {
+  bottom: -0.19em; /* tiny tuck so it’s not too low */
+  font-size: 0.95em; /* slightly smaller so it’s tighter */
+}
 .hero-dark {
   position: absolute;
   inset: 0;
@@ -512,24 +584,35 @@ body.intro-done .hero {
 .hero-dark__design {
   top: calc(var(--OY) + (370px * var(--s)));
 }
-
-.unit-icons {
+/* UNIT black mark: anchored to UNIT, star above square */
+.word-unit .unit-mark {
   position: absolute;
-  left: calc(var(--OX) + (980px * var(--s)));
-  top: calc(var(--OY) + (10px * var(--s)));
-  display: grid;
-  gap: calc(10px * var(--s));
-  z-index: 3;
+  left: 100%;
+  top: 0.3em; /* same “center on line” idea */
+  width: 0.85em;
+  height: 0.85em;
+  transform: translate(0.06em, -50%);
+  pointer-events: none;
 }
-.unit-star {
-  color: var(--ink);
-  font-size: calc(100px * var(--s));
+
+.word-unit .unit-mark .unit-star,
+.word-unit .unit-mark .unit-square {
+  position: absolute;
+  left: 25%;
+  transform: translateX(-50%);
   line-height: 1;
 }
-.unit-square {
-  width: calc(40px * var(--s));
-  height: calc(40px * var(--s));
-  background: var(--ink);
+
+.word-unit .unit-mark .unit-star {
+  top: 0;
+  font-size: 0.62em;
+  color: var(--ink);
+}
+
+.word-unit .unit-mark .unit-square {
+  bottom: -0.19em;
+  font-size: 0.95em;
+  color: var(--ink);
 }
 
 .hero-pill {
@@ -565,15 +648,12 @@ body.intro-done .hero {
   z-index: 4;
 }
 
-/* SCROLL: onderaan rechter-onder square, volledige breedte (x75..x1) */
 .hero-scroll {
   position: absolute;
   left: var(--x75);
   width: calc(var(--x1) - var(--x75));
-
   bottom: calc(var(--vh) - var(--y1));
   height: calc(80px * var(--s));
-
   background: var(--orange);
   display: grid;
   place-items: center;
