@@ -1,29 +1,30 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="lab">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ODD UNIT — Designer Toy Studio</title>
+    <title>ODD UNIT — Studio</title>
     <link rel="stylesheet" href="style.css" />
   </head>
 
   <body>
-    <header class="topbar">
+    <header class="topbar" aria-hidden="false">
       <div class="logo-mount" id="logoMount" aria-hidden="true"></div>
 
-      <select id="themeSelect" class="theme-select" aria-label="Theme">
-        <option value="lab">LAB (current)</option>
-        <option value="hanson">Hanson-ish (clean/typography)</option>
-        <option value="poster">Poster (hard/orange)</option>
-      </select>
+      <div class="nav-rail">
+        <nav class="nav-links" aria-label="Primary">
+          <a href="/">HOME</a>
+          <a href="/drops">PROJECTS</a>
+          <a href="#socials">SOCIALS</a>
+          <a href="#about">ABOUT-US</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+      </div>
 
-      <nav>
-        <a href="#about">About</a>
-        <a href="#drops">Drops</a>
-        <a href="#contact">Contact</a>
-      </nav>
+      <a class="contact-pill" href="#contact">CONTACT US</a>
     </header>
 
+    <!-- INTRO overlay -->
     <div class="landing" id="landing" aria-hidden="false">
       <div class="landing-mark" id="landingMark">
         <span class="plus landing-plus" data-corner="tl"></span>
@@ -33,10 +34,11 @@
       </div>
     </div>
 
+    <!-- logo used by print fx -->
     <img
       class="logo logo-float"
       id="brandLogo"
-      src="LogoGreen.png"
+      src="/drops/LogoGreen.png"
       alt="ODD UNIT"
       decoding="async"
       fetchpriority="high"
@@ -48,84 +50,60 @@
       <div class="logo-printfx__layer" aria-hidden="true"></div>
     </div>
 
-    <canvas id="three-canvas"></canvas>
-    <div id="canvasReveal" class="canvas-reveal" aria-hidden="true"></div>
-
-    <div class="scene-frame" aria-hidden="true">
-      <span class="plus plus--tl"></span>
-      <span class="plus plus--tr"></span>
-      <span class="plus plus--bl"></span>
-      <span class="plus plus--br"></span>
-    </div>
-
-    <aside class="ui-panel">
-      <div class="copy">
-        <button
-          class="sheet-handle"
-          id="sheetToggle"
-          type="button"
-          aria-expanded="false"
-        >
-          <span class="sheet-title" id="sheetTitle">ProtoBoy V3</span>
-          <span class="sheet-chevron" aria-hidden="true"></span>
-        </button>
-
-        <div class="sheet-body">
-          <div class="drop-meta">
-            <div class="meta-grid">
-              <div class="meta-item">
-                <span class="meta-label">BATCH</span>
-                <span class="meta-value" id="badge">DROP 01</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">EDITION</span>
-                <span class="meta-value">01/200</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="product-info">
-            <h1 id="title">ProtoBoy V3</h1>
-            <p id="desc">...</p>
-          </div>
-
-          <a href="#" class="buy-button" id="buy">
-            <span>BUY NOW</span>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path
-                d="M3 8H13M13 8L9 4M13 8L9 12"
-                stroke="currentColor"
-                stroke-width="1.5"
-              />
-            </svg>
-          </a>
-
-          <div class="drop-indicator">
-            <div class="dot active" data-drop="0"></div>
-            <div class="dot" data-drop="1"></div>
-          </div>
-        </div>
+    <!-- HERO -->
+    <main class="hero" id="hero" aria-hidden="true">
+      <!-- corner pluses -->
+      <div class="hero-frame" aria-hidden="true">
+        <span class="frame-plus fp-tl" aria-hidden="true"></span>
+        <span class="frame-plus fp-tr" aria-hidden="true"></span>
+        <span class="frame-plus fp-bl" aria-hidden="true"></span>
+        <span class="frame-plus fp-br" aria-hidden="true"></span>
       </div>
-    </aside>
 
-    <div class="right-ticker" aria-hidden="true">
-      <div class="right-ticker__track" id="rightTickerTrack">
-        <div class="right-ticker__inner" id="rightTickerInner">
-          <span>BEING ODD IS PERFECT.</span>
-          <span>BEING PERFECT IS ODD.</span>
-          <span>BEING ODD IS PERFECT.</span>
-          <span>BEING PERFECT IS ODD.</span>
+      <!-- stage is just a relative positioning context -->
+      <section class="hero-stage" aria-label="Hero">
+        <!-- dark words -->
+        <div class="hero-dark" aria-hidden="true">
+          <div class="hero-dark__creatieve">DE&nbsp;CREATIEVE</div>
+          <div class="hero-dark__design">DESIGN</div>
         </div>
-      </div>
-    </div>
 
-    <div class="scroll-space"></div>
+        <!-- orange words -->
+        <h1 class="hero-word word-odd">ODD</h1>
+        <h1 class="hero-word word-unit">UNIT</h1>
+
+        <!-- small black icons near UNIT -->
+        <div class="unit-icons" aria-hidden="true">
+          <span class="unit-star">✶</span>
+          <span class="unit-square"></span>
+        </div>
+
+        <h1 class="hero-word word-stu">
+          STU<span class="dot">.</span
+          ><span class="star" aria-hidden="true">✶</span>
+        </h1>
+
+        <h1 class="hero-word word-dio">DIO</h1>
+
+        <a class="hero-pill" href="/drops">VIEW WORK</a>
+
+        <p class="hero-copy">
+          VAN DIGITAAL<br />
+          NAAR TASTBAAR<br />
+          MATERIAAL.
+        </p>
+
+        <a class="hero-scroll" href="#about">
+          SCROLL DOWN
+          <span class="hero-scroll__chev" aria-hidden="true">⌄</span>
+        </a>
+      </section>
+    </main>
+
+    <section id="about" class="section"></section>
+    <section id="socials" class="section"></section>
+    <section id="faq" class="section"></section>
+    <section id="contact" class="section"></section>
 
     <script type="module" src="main.js"></script>
   </body>
