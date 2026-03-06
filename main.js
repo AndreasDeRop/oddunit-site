@@ -1,5 +1,29 @@
 import gsap from "https://esm.sh/gsap@3.12.2";
+import ScrollToPlugin from "https://esm.sh/gsap@3.12.2/ScrollToPlugin";
+gsap.registerPlugin(ScrollToPlugin);
+// ✅ scroll helper (werkt met plugin OF zonder)
+function scrollToY(y, duration = 0.9) {
+  // if ScrollToPlugin actually registered, use it
+  if (gsap.plugins && gsap.plugins.ScrollToPlugin) {
+    return gsap.to(window, {
+      scrollTo: { y, autoKill: true },
+      duration,
+      ease: "power2.inOut",
+    });
+  }
 
+  // fallback (geen plugin nodig)
+  const start = window.scrollY;
+  const delta = y - start;
+  const state = { t: 0 };
+
+  return gsap.to(state, {
+    t: 1,
+    duration,
+    ease: "power2.inOut",
+    onUpdate: () => window.scrollTo(0, start + delta * state.t),
+  });
+}
 const landingEl = document.getElementById("landing");
 const landingMarkEl = document.getElementById("landingMark");
 const landingPlusEls = Array.from(document.querySelectorAll(".landing-plus"));
@@ -14,7 +38,6 @@ const heroPlusMap = {
   bl: document.querySelector(".hero-frame .fp-bl"),
   br: document.querySelector(".hero-frame .fp-br"),
 };
-
 let introPlayed = false;
 
 let prevOverflowHtml = "";
@@ -135,8 +158,8 @@ function playIntro() {
     "--hx": 0,
   });
 
-  const LAYERS = 4;
-  const TIME_PER_LAYER = 0.6;
+  const LAYERS = 30;
+  const TIME_PER_LAYER = 0.15;
   const PRINT_DUR = LAYERS * TIME_PER_LAYER;
   const MOVE_DUR = 1.4;
 
@@ -148,11 +171,19 @@ function playIntro() {
   const printState = { t: 0 };
 
   const tl = gsap.timeline({
-    onComplete: () => {
-      gsap.set(logoPrintFxEl, { opacity: 0 });
-      gsap.set(logoMountEl, { opacity: 1 });
-      lockScroll(false);
-    },
+  onComplete: () => {
+    gsap.set(logoPrintFxEl, { opacity: 0 });
+    gsap.set(logoMountEl, { opacity: 1 });
+
+    // eerst unlocken (anders verschuift alles door padding-right)
+    lockScroll(false);
+
+    // 1 frame wachten zodat layout stabiel is, dán pas pinnen
+    requestAnimationFrame(() => {
+     pinnedHome = pinHomePluses();
+    setupHeroSnap(pinnedHome);
+    });
+  },
   });
 
   // PRINT scan
@@ -216,6 +247,164 @@ function playIntro() {
 
   // hide overlay after background is basically gone
   tl.to(landingEl, { autoAlpha: 0, duration: 0.12, ease: "none" }, XFADE + 0.18);
+}
+let pinnedHome = null;
+let snapDone = false;
+let snapBusy = false;
+
+function dockPlusesIntoAbout(pinned) {
+  const aboutTitle = document.querySelector(".about-title");
+  if (!aboutTitle) return;
+
+  ["tl", "tr", "bl", "br"].forEach((k) => {
+    const el = pinned?.[k];
+    if (!el) return;
+
+    // reset fixed pin styles
+    el.style.position = "";
+    el.style.left = "";
+    el.style.top = "";
+    el.style.margin = "";
+    el.style.zIndex = "";
+
+    // remove hero corner class, add about docking classes
+    el.classList.remove(`fp-${k}`);
+    el.classList.add("about-plus", `ap-${k}`);
+
+    // kill transforms
+    gsap.set(el, { x: 0, y: 0, opacity: 1 });
+
+    aboutTitle.appendChild(el);
+  });
+}
+
+function snapToAboutAndHandoff(pinned) {
+  if (snapDone || snapBusy) return;
+
+  const about = document.getElementById("about");
+  const aboutTitle = document.querySelector(".about-title");
+  if (!about || !aboutTitle) return;
+
+  snapBusy = true;
+  snapDone = true;
+
+  const startY = window.scrollY;
+  const endY = about.getBoundingClientRect().top + startY; // robust
+  const dy = endY - startY;
+
+  // Where will the aboutTitle be in the viewport AFTER the scroll finishes?
+  const titleNow = aboutTitle.getBoundingClientRect();
+  const titleEnd = {
+    left: titleNow.left,
+    right: titleNow.right,
+    top: titleNow.top - dy,
+    bottom: titleNow.bottom - dy,
+  };
+
+  const D = 0.9;
+
+  const tl = gsap.timeline({
+    onComplete: () => {
+      snapBusy = false;
+      dockPlusesIntoAbout(pinned);
+    },
+  });
+
+  // smooth scroll to about
+tl.add(scrollToY(endY, D), 0);
+
+  // animate pinned pluses to the about-title corners (final viewport positions)
+  ["tl", "tr", "bl", "br"].forEach((k) => {
+    const el = pinned?.[k];
+    if (!el) return;
+
+    const r = el.getBoundingClientRect();
+    const halfW = r.width / 2;
+    const halfH = r.height / 2;
+
+    const destLeft = k.includes("l") ? titleEnd.left - halfW : titleEnd.right - halfW;
+    const destTop = k.includes("t") ? titleEnd.top - halfH : titleEnd.bottom - halfH;
+
+    tl.to(
+      el,
+      {
+        x: destLeft - r.left,
+        y: destTop - r.top,
+        duration: D,
+        ease: "power2.inOut",
+      },
+      0
+    );
+  });
+}
+
+function setupHeroSnap(pinned) {
+  const hero = document.getElementById("hero");
+  if (!hero) return;
+
+  const SNAP_AT = 0.15; // 15% (tweak this)
+
+  let ticking = false;
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (snapDone || snapBusy) return;
+      if (ticking) return;
+
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+
+              const rect = hero.getBoundingClientRect();
+        const heroH = rect.height || window.innerHeight;
+
+        // progress: 0 = hero top in view, 1 = hero volledig voorbij
+        const p = Math.min(1, Math.max(0, -rect.top / heroH));
+
+        if (p >= SNAP_AT && p < 0.95) {
+          snapToAboutAndHandoff(pinned);
+        }
+      });
+    },
+    { passive: true }
+  );
+
+  // Also make the "SCROLL DOWN" button use the same logic (no weird double behavior)
+  const scrollBtn = document.querySelector(".hero-scroll");
+  if (scrollBtn) {
+    scrollBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      snapToAboutAndHandoff(pinned);
+    });
+  }
+}
+function pinHomePluses() {
+  const map = {
+    tl: document.querySelector(".hero-frame .fp-tl"),
+    tr: document.querySelector(".hero-frame .fp-tr"),
+    bl: document.querySelector(".hero-frame .fp-bl"),
+    br: document.querySelector(".hero-frame .fp-br"),
+  };
+
+  Object.values(map).forEach((el) => {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+
+    document.body.appendChild(el);
+    gsap.set(el, {
+      position: "fixed",
+      left: r.left,
+      top: r.top,
+      x: 0,
+      y: 0,
+      margin: 0,
+      zIndex: 85,
+      opacity: 1,
+    });
+  });
+
+  return map;
 }
 
 async function boot() {

@@ -1,40 +1,30 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap");
-
 html {
   scrollbar-gutter: stable;
 }
-
 :root {
   --font-display: "JetBrains Mono", monospace;
   --font-body: "Inter", -apple-system, sans-serif;
-
   --bg: #070707;
   --orange: #ff6b00;
   --orange-rgb: 255 107 0;
   --purple: #8a2be2;
-
   --ink: #171717;
   --grid: rgba(255, 107, 0, 0.95);
-
   --topbar-h: 64px;
   --frameInset: 84px;
   --line-w: 2px;
-
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --logo-ratio: 4/1;
-
   --artW: 1920px;
   --artH: 1080px;
-
   --vh: 100vh;
 }
-
 @supports (height: 100svh) {
   :root {
     --vh: 100svh;
   }
 }
-
 * {
   box-sizing: border-box;
   margin: 0;
@@ -51,39 +41,25 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* ─────────────────────────────────────────────────────────── */
-/* GRID METRICS (LOCKED POSTER FRAME) */
-/* ─────────────────────────────────────────────────────────── */
-
+} /* ─────────────────────────────────────────────────────────── */ /* GRID METRICS (LOCKED POSTER FRAME) */ /* ─────────────────────────────────────────────────────────── */
 :root {
   --ratio: 1.7777777778;
-
   --availW: calc(100vw - (2 * var(--frameInset)));
   --availH: calc(var(--vh) - (2 * var(--frameInset)));
-
   --frameW: min(var(--availW), calc(var(--availH) * var(--ratio)));
   --frameH: calc(var(--frameW) / var(--ratio));
-
   --x0: calc((100vw - var(--frameW)) / 2);
   --y0: calc((var(--vh) - var(--frameH)) / 2);
   --x1: calc(var(--x0) + var(--frameW));
   --y1: calc(var(--y0) + var(--frameH));
-
   --x25: calc(var(--x0) + var(--frameW) * 0.25);
   --x50: calc(var(--x0) + var(--frameW) * 0.5);
   --x75: calc(var(--x0) + var(--frameW) * 0.75);
-
   --ySplit: calc(var(--y0) + var(--frameH) * 0.52);
-
   --s: calc(var(--frameW) / 1920px);
-
   --OX: var(--x0);
   --OY: var(--y0);
-}
-
-/* micro grid (always on, subtle) */
+} /* micro grid (always on, subtle) */
 body::before {
   content: "";
   position: fixed;
@@ -96,20 +72,17 @@ body::before {
     linear-gradient(90deg, rgba(255, 107, 0, 0.07) 1px, transparent 1px),
     linear-gradient(rgba(255, 107, 0, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 107, 0, 0.03) 1px, transparent 1px);
-
   background-size:
     32px 32px,
     32px 32px,
     20px 20px,
     20px 20px;
-
   background-position:
     0 0,
     0 0,
     0 0,
     0 0;
 }
-
 body::after {
   content: "";
   position: fixed;
@@ -174,9 +147,7 @@ body::after {
       var(--grid) calc(var(--ySplit) + (var(--line-w) / 2)),
       transparent calc(var(--ySplit) + (var(--line-w) / 2))
     );
-}
-
-/* TOPBAR */
+} /* TOPBAR */
 .topbar {
   position: fixed;
   inset: 0 0 auto 0;
@@ -187,48 +158,39 @@ body::after {
   align-items: center;
   padding: 0 18px;
   pointer-events: none;
-}
-
-/* logo centered in left-top square */
+} /* logo centered in left-top square */
 .logo-mount {
   position: fixed;
-  left: calc((var(--x0) + var(--x25)) / 2);
-  top: calc(var(--y0) / 2);
-  transform: translate(-50%, -50%);
+  left: calc(var(--x0) + (90px * var(--s)));
+  top: calc(var(--y0) / 4);
+  transform: translate(-50%);
   z-index: 55;
-
   width: 180px;
   height: 44px;
   opacity: 0;
-
   pointer-events: none;
   isolation: isolate;
-
   --logo-url: none;
 }
-
 .logo-mount img {
   position: absolute;
   inset: 0;
   opacity: 0;
 }
-
 .logo-mount::before {
   content: "";
   position: absolute;
   inset: 0;
   background: var(--orange);
-
   -webkit-mask-image: var(--logo-url);
   mask-image: var(--logo-url);
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-size: contain;
   mask-size: contain;
-  -webkit-mask-position: center;
-  mask-position: center;
+  -webkit-mask-position: left center;
+  mask-position: left center;
 }
-
 .logo {
   height: 44px;
   width: auto;
@@ -242,22 +204,18 @@ body::after {
   will-change: transform;
   pointer-events: none;
 }
-
 .nav-rail {
   position: fixed;
   top: 0;
   left: var(--x25);
   width: calc(var(--x75) - var(--x25));
   height: var(--y0);
-
   background: var(--orange);
   display: grid;
   place-items: center;
-
   pointer-events: auto;
-  z-index: 50;
+  z-index: 900;
 }
-
 .nav-links {
   display: flex;
   gap: 14px;
@@ -270,13 +228,11 @@ body::after {
   color: #0a0a0a;
   text-decoration: none;
 }
-
 .contact-pill {
   position: fixed;
   left: calc((var(--x75) + var(--x1)) / 2);
   top: calc(var(--y0) / 2);
   transform: translate(-50%, -50%);
-
   pointer-events: auto;
   height: 34px;
   min-width: 200px;
@@ -292,39 +248,26 @@ body::after {
   align-items: center;
   justify-content: center;
   text-decoration: none;
-
   z-index: 50;
-}
-
-/* ─────────────────────────────────────────────────────────── */
-/* INTRO */
-/* ─────────────────────────────────────────────────────────── */
-
+} /* ─────────────────────────────────────────────────────────── */ /* INTRO */ /* ─────────────────────────────────────────────────────────── */
 #brandLogo {
   opacity: 0;
 }
-
 .landing {
   --landingA: 1;
   position: fixed;
   inset: 0;
   z-index: 70;
   display: grid;
-  place-items: center;
-
-  /* only this fades */
+  place-items: center; /* only this fades */
   background: rgb(var(--orange-rgb) / var(--landingA));
-
   pointer-events: none;
 }
-
 .landing-mark {
   position: relative;
   width: clamp(240px, 42vw, 560px);
   aspect-ratio: var(--logo-ratio);
-}
-
-/* landing pluses: black */
+} /* landing pluses: black */
 .plus {
   position: absolute;
   width: 28px;
@@ -349,7 +292,6 @@ body::after {
   width: 4px;
   height: 22px;
 }
-
 .landing-plus {
   opacity: 0;
 }
@@ -368,18 +310,14 @@ body::after {
 .landing-plus[data-corner="br"] {
   bottom: -44px;
   right: -44px;
-}
-
-/* Print FX */
+} /* Print FX */
 #logoPrintFx {
   opacity: 0;
 }
-
 .logo-printfx {
   --py: 0;
   --hx: 0;
   --layerH: 1%;
-
   position: fixed;
   left: 0;
   top: 0;
@@ -388,14 +326,11 @@ body::after {
   will-change: transform, opacity;
   transform-origin: top left;
 }
-
 .logo-printfx__printed,
 .logo-printfx__layer {
   position: absolute;
   inset: 0;
-
   background: var(--bg);
-
   -webkit-mask-image: var(--logo-url);
   mask-image: var(--logo-url);
   -webkit-mask-repeat: no-repeat;
@@ -405,12 +340,10 @@ body::after {
   -webkit-mask-position: center;
   mask-position: center;
 }
-
 .logo-printfx__printed {
   -webkit-clip-path: inset(calc((1 - var(--py)) * 100% + var(--layerH)) 0 0 0);
   clip-path: inset(calc((1 - var(--py)) * 100% + var(--layerH)) 0 0 0);
 }
-
 .logo-printfx__layer {
   -webkit-clip-path: inset(
     calc((1 - var(--py)) * 100%) calc((1 - var(--hx)) * 100%)
@@ -422,12 +355,7 @@ body::after {
   );
   opacity: 0.95;
   filter: brightness(1.06);
-}
-
-/* ─────────────────────────────────────────────────────────── */
-/* HERO (always there) */
-/* ─────────────────────────────────────────────────────────── */
-
+} /* ─────────────────────────────────────────────────────────── */ /* HERO (always there) */ /* ─────────────────────────────────────────────────────────── */
 .hero {
   position: relative;
   height: var(--vh);
@@ -437,7 +365,6 @@ body::after {
   opacity: 1;
   pointer-events: auto;
 }
-
 .hero-frame {
   position: absolute;
   left: var(--x0);
@@ -446,14 +373,12 @@ body::after {
   height: var(--frameH);
   z-index: 46;
   pointer-events: none;
-}
-
-/* home corner pluses exist from start but start invisible (JS crossfades them) */
+} /* home corner pluses exist from start but start invisible (JS crossfades them) */
 .frame-plus {
   position: absolute;
   width: 28px;
   height: 28px;
-  opacity: 0;
+  opacity: 1;
 }
 .frame-plus::before,
 .frame-plus::after {
@@ -472,7 +397,6 @@ body::after {
   width: 4px;
   height: 22px;
 }
-
 .fp-tl {
   top: -14px;
   left: -14px;
@@ -489,14 +413,11 @@ body::after {
   bottom: -14px;
   right: -14px;
 }
-
 .hero-stage {
   position: absolute;
   inset: 0;
   z-index: 47;
-}
-
-/* ===== your existing hero layout (unchanged) ===== */
+} /* ===== your existing hero layout (unchanged) ===== */
 .hero-word,
 .hero-dark__creatieve,
 .hero-dark__design {
@@ -505,14 +426,12 @@ body::after {
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
-
 .hero-word {
   position: absolute;
   color: var(--orange);
   line-height: 0.85;
   font-size: calc(200px * var(--s));
 }
-
 .word-odd {
   left: calc(var(--OX) + (1px * var(--s)));
   top: calc(var(--OY) + (20px * var(--s)));
@@ -528,24 +447,16 @@ body::after {
 .word-dio {
   left: calc(var(--OX) + (1px * var(--s)));
   top: calc(var(--OY) + (570px * var(--s)));
-}
-
-/* STU punctuation: aligned with STU line, star above dot, tight */
+} /* STU punctuation: aligned with STU line, star above dot, tight */
 .word-stu .punct {
   position: absolute;
-  left: 100%;
-
-  /* center the mark on the STU line-height (0.85em / 2 = 0.425em) */
+  left: 100%; /* center the mark on the STU line-height (0.85em / 2 = 0.425em) */
   top: 0.3em;
-
   width: 0.85em;
-  height: 0.85em;
-
-  /* small horizontal gap + vertical centering */
+  height: 0.85em; /* small horizontal gap + vertical centering */
   transform: translate(0.06em, -50%);
   pointer-events: none;
 }
-
 .word-stu .punct .star,
 .word-stu .punct .dot {
   position: absolute;
@@ -553,12 +464,10 @@ body::after {
   transform: translateX(-50%);
   line-height: 1;
 }
-
 .word-stu .punct .star {
   top: 0;
   font-size: 0.62em;
 }
-
 .word-stu .punct .dot {
   bottom: -0.19em; /* tiny tuck so it’s not too low */
   font-size: 0.95em; /* slightly smaller so it’s tighter */
@@ -583,8 +492,7 @@ body::after {
 }
 .hero-dark__design {
   top: calc(var(--OY) + (370px * var(--s)));
-}
-/* UNIT black mark: anchored to UNIT, star above square */
+} /* UNIT black mark: anchored to UNIT, star above square */
 .word-unit .unit-mark {
   position: absolute;
   left: 100%;
@@ -594,7 +502,6 @@ body::after {
   transform: translate(0.06em, -50%);
   pointer-events: none;
 }
-
 .word-unit .unit-mark .unit-star,
 .word-unit .unit-mark .unit-square {
   position: absolute;
@@ -602,19 +509,16 @@ body::after {
   transform: translateX(-50%);
   line-height: 1;
 }
-
 .word-unit .unit-mark .unit-star {
   top: 0;
   font-size: 0.62em;
   color: var(--ink);
 }
-
 .word-unit .unit-mark .unit-square {
   bottom: -0.19em;
   font-size: 0.95em;
   color: var(--ink);
 }
-
 .hero-pill {
   position: absolute;
   left: calc(var(--OX) + (510px * var(--s)));
@@ -634,7 +538,6 @@ body::after {
   text-decoration: none;
   z-index: 4;
 }
-
 .hero-copy {
   position: absolute;
   left: calc(var(--OX) + (540px * var(--s)));
@@ -647,7 +550,6 @@ body::after {
   line-height: 1.35;
   z-index: 4;
 }
-
 .hero-scroll {
   position: absolute;
   left: var(--x75);
@@ -669,13 +571,312 @@ body::after {
   margin-left: calc(8px * var(--s));
   font-size: calc(20px * var(--s));
 }
-
-.section {
+/* .section {
   height: 60vh;
-}
-
+} */
 @media (max-width: 900px) {
   :root {
     --frameInset: 22px;
   }
+}
+
+/* ───────────────────────────────────────────── */
+/* PAGE 2 (ABOUT) */
+/* ───────────────────────────────────────────── */
+
+.about {
+  height: var(--vh);
+  position: relative;
+  z-index: 65; /* above the grid */
+}
+
+.about-frame {
+  position: absolute;
+  left: var(--x0);
+  top: var(--y0);
+  width: var(--frameW);
+  height: var(--frameH);
+
+  display: grid;
+  grid-template-rows: calc(var(--frameH) * 0.52) 1fr;
+  gap: 0;
+}
+
+/* TOP area */
+.about-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* These blocks cover the grid lines behind them (so lines vanish) */
+.about-title,
+.about-empty,
+.about-modules,
+.module {
+  background: var(--bg);
+}
+
+/* left title block with border + corner pluses */
+.about-title {
+  position: relative;
+  border: var(--line-w) solid var(--orange);
+  padding: calc(48px * var(--s)) calc(56px * var(--s));
+  overflow: visible;
+}
+/* wanneer de plussen gedockt zijn in .about-title */
+.about-title .about-plus {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+}
+
+/* zelfde logica als fp-* (center op hoek) */
+.about-title .about-plus.ap-tl {
+  left: calc(-24px * var(--s));
+  top: calc(-24px * var(--s));
+}
+.about-title .about-plus.ap-tr {
+  right: calc(-24px * var(--s));
+  top: calc(-24px * var(--s));
+}
+.about-title .about-plus.ap-bl {
+  left: calc(-24px * var(--s));
+  bottom: calc(-24px * var(--s));
+}
+.about-title .about-plus.ap-br {
+  right: calc(-24px * var(--s));
+  bottom: calc(-24px * var(--s));
+}
+
+/* corner pluses on title block */
+.about-corner {
+  position: absolute;
+  font-family: var(--font-display);
+  color: var(--orange);
+  font-size: calc(26px * var(--s));
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+.about-corner.tl {
+  left: calc(10px * var(--s));
+  top: calc(8px * var(--s));
+}
+.about-corner.tr {
+  right: calc(10px * var(--s));
+  top: calc(8px * var(--s));
+}
+.about-corner.bl {
+  left: calc(10px * var(--s));
+  bottom: calc(8px * var(--s));
+}
+.about-corner.br {
+  right: calc(10px * var(--s));
+  bottom: calc(8px * var(--s));
+}
+
+/* big title text (tweak if needed) */
+.about-heading {
+  font-family: var(--font-display);
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 0.76;
+  font-size: calc(120px * var(--s));
+  padding: auto;
+}
+
+/* BOTTOM modules */
+
+/* sizing tokens voor modules */
+.about {
+  --modHead: calc(180px * var(--s));
+  --modStrip: calc(64px * var(--s));
+}
+
+/* BOTTOM modules container (zoals je al had, maar keep it clean) */
+.about-modules {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border-top: var(--line-w) solid var(--orange);
+  height: 100%;
+}
+
+/* module basis */
+.module {
+  position: relative;
+  overflow: hidden;
+  /* background: var(--bg); */
+  border-right: var(--line-w) solid var(--orange);
+}
+.module:last-child {
+  border-right: none;
+}
+
+/* HEAD (titelvak) */
+.module-head {
+  height: var(--modHead);
+  display: grid;
+  place-items: center;
+  text-align: center;
+
+  font-family: var(--font-display);
+  font-size: calc(22px * var(--s));
+  letter-spacing: 0.04em;
+
+  /* background: var(--bg); */
+  color: var(--orange);
+
+  position: relative;
+  z-index: 3;
+
+  transition:
+    background 0.18s var(--ease),
+    color 0.18s var(--ease);
+}
+
+/* tekst swap (ontwerp -> design) */
+.module-head .label-open {
+  display: none;
+}
+.module:hover .module-head .label-closed {
+  display: none;
+}
+.module:hover .module-head .label-open {
+  display: inline;
+}
+
+/* STRIP: start onder titel */
+.module-strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+
+  top: var(--modHead);
+  height: var(--modStrip);
+
+  background: var(--orange);
+  display: grid;
+  place-items: center;
+
+  z-index: 4;
+  transition: top 0.22s var(--ease);
+}
+
+/* BODY: start “dicht” (onder strip), opent van boven naar beneden */
+.module-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+
+  top: calc(var(--modHead) + var(--modStrip));
+  bottom: var(--modStrip);
+  padding: calc(18px * var(--s)) calc(22px * var(--s));
+
+  z-index: 2;
+
+  opacity: 0;
+  clip-path: inset(0 0 100% 0);
+  pointer-events: none;
+
+  transition:
+    clip-path 0.22s var(--ease),
+    opacity 0.18s var(--ease),
+    top 0.22s var(--ease);
+}
+
+/* HOVER: head wordt oranje, strip schuift naar onder, body klapt open */
+.module:hover .module-head {
+  background: var(--orange);
+  color: #0a0a0a;
+}
+.module:hover .module-strip {
+  top: calc(100% - var(--modStrip));
+}
+.module:hover .module-body {
+  top: var(--modHead);
+  opacity: 1;
+  clip-path: inset(0 0 0 0);
+  pointer-events: auto;
+}
+
+/* list styling zoals je screenshot */
+.module-body ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  font-family: var(--font-display);
+  font-size: calc(18px * var(--s));
+  letter-spacing: 0.06em;
+  line-height: 1.45;
+}
+.module-body li {
+  margin: 0 0 calc(10px * var(--s));
+  position: relative;
+  padding-left: 14px;
+}
+.module-body li::before {
+  content: "-";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--orange);
+}
+.module-body b {
+  color: var(--orange);
+}
+
+/* ICON: één element, plus -> chevron */
+.module-icon {
+  --icon: clamp(14px, calc(18px * var(--s)), 20px);
+  --stroke: clamp(2px, calc(3px * var(--s)), 3px);
+
+  width: var(--icon);
+  height: var(--icon);
+  position: relative;
+  display: block;
+
+  /* iets hoger in de balk zoals je ref */
+  transform: translateY(-2px);
+}
+
+.module-icon::before,
+.module-icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: #0a0a0a;
+  transform: translate(-50%, -50%);
+  border-radius: 1px;
+}
+
+/* default PLUS */
+.module-icon::before {
+  width: calc(var(--icon) * 0.95);
+  height: var(--stroke);
+}
+.module-icon::after {
+  width: var(--stroke);
+  height: calc(var(--icon) * 0.95);
+}
+
+/* hover CHEVRON (˄) — blijft in diezelfde (onderste) balk */
+.module:hover .module-icon::before,
+.module:hover .module-icon::after {
+  width: calc(var(--icon) * 0.72);
+  height: var(--stroke);
+  top: 52%;
+}
+
+/* left arm */
+.module:hover .module-icon::before {
+  left: 46%;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+/* right arm */
+.module:hover .module-icon::after {
+  left: 54%;
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
