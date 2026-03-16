@@ -31,7 +31,7 @@ const landingPlusEls = Array.from(document.querySelectorAll(".landing-plus"));
 const brandLogoEl = document.getElementById("brandLogo");
 const logoMountEl = document.getElementById("logoMount");
 const logoPrintFxEl = document.getElementById("logoPrintFx");
-
+const PLUS_Z = 20001;
 const heroPlusMap = {
   tl: document.querySelector(".hero-frame .fp-tl"),
   tr: document.querySelector(".hero-frame .fp-tr"),
@@ -120,6 +120,7 @@ function playIntro() {
   if (introPlayed) return;
   introPlayed = true;
 
+  // document.body.classList.add("is-intro");
   lockScroll(true);
   resetStates();
 
@@ -158,8 +159,8 @@ function playIntro() {
     "--hx": 0,
   });
 
-  const LAYERS = 30;
-  const TIME_PER_LAYER = 0.15;
+  const LAYERS = 25;
+  const TIME_PER_LAYER = 0.07;
   const PRINT_DUR = LAYERS * TIME_PER_LAYER;
   const MOVE_DUR = 1.4;
 
@@ -171,22 +172,20 @@ function playIntro() {
   const printState = { t: 0 };
 
   const tl = gsap.timeline({
-  onComplete: () => {
-    gsap.set(logoPrintFxEl, { opacity: 0 });
-    gsap.set(logoMountEl, { opacity: 1 });
+    onComplete: () => {
+      gsap.set(logoPrintFxEl, { opacity: 0 });
+      gsap.set(logoMountEl, { opacity: 1 });
 
-    // eerst unlocken (anders verschuift alles door padding-right)
-    lockScroll(false);
+      lockScroll(false);
+      // document.body.classList.remove("is-intro");
 
-    // 1 frame wachten zodat layout stabiel is, dán pas pinnen
-    requestAnimationFrame(() => {
-     pinnedHome = pinHomePluses();
-    setupHeroSnap(pinnedHome);
-    });
-  },
+      requestAnimationFrame(() => {
+        pinnedHome = pinHomePluses();
+        setupBidirectionalSnap(pinnedHome);
+      });
+    },
   });
 
-  // PRINT scan
   tl.to(
     printState,
     {
@@ -211,14 +210,12 @@ function playIntro() {
     0
   );
 
-  // MOVE logo to topbar
   tl.to(
     logoPrintFxEl,
     { x: endX, y: endY, scale: 1, duration: MOVE_DUR, ease: "power2.inOut" },
     MOVE_START
   );
 
-  // MOVE pluses
   landingPlusEls.forEach((p) => {
     const corner = p.getAttribute("data-corner");
     const target = heroPlusMap[corner];
@@ -229,107 +226,263 @@ function playIntro() {
 
     tl.to(
       p,
-      { x: b.left - a.left, y: b.top - a.top, duration: MOVE_DUR, ease: "power2.inOut" },
+      {
+        x: b.left - a.left,
+        y: b.top - a.top,
+        duration: MOVE_DUR,
+        ease: "power2.inOut",
+      },
       MOVE_START
     );
   });
 
-  // ✅ ONLY fade the orange background while the move happens
   tl.to(
     landingEl,
     { "--landingA": 0, duration: MOVE_DUR * 0.9, ease: "power1.out" },
     MOVE_START + 0.05
   );
 
-  // crossfade plus sets near the end of the move
   tl.to(landingPlusEls, { opacity: 0, duration: 0.18, ease: "none" }, XFADE);
   tl.to(".hero-frame .frame-plus", { opacity: 1, duration: 0.18, ease: "none" }, XFADE);
-
-  // hide overlay after background is basically gone
   tl.to(landingEl, { autoAlpha: 0, duration: 0.12, ease: "none" }, XFADE + 0.18);
 }
-let pinnedHome = null;
-let snapDone = false;
-let snapBusy = false;
 
-function dockPlusesIntoAbout(pinned) {
+let pinnedHome = null;
+let snapState = "hero"; // "hero" | "about"
+let snapBusy = false;
+let lastScrollY = 0;
+
+function getS() {
+  const s = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--s"));
+  return Number.isFinite(s) && s > 0 ? s : 1;
+}
+
+function ensureFixedFromRect(el) {
+  const r = el.getBoundingClientRect();
+  document.body.appendChild(el);
+  gsap.set(el, {
+    position: "fixed",
+    left: r.left,
+    top: r.top,
+    x: 0,
+    y: 0,
+    margin: 0,
+    zIndex: PLUS_Z,
+    opacity: 1,
+  });
+  return r;
+}
+
+function undockFromAboutToFixed(pinned) {
+  ["tl", "tr", "bl", "br"].forEach((k) => {
+    const el = pinned?.[k];
+    if (!el) return;
+
+    // als hij in about zit: classes weg
+    el.classList.remove("about-plus", `ap-${k}`);
+
+    // zet hem fixed op z’n huidige viewport positie
+    ensureFixedFromRect(el);
+  });
+}
+
+function dockIntoAbout(pinned) {
   const aboutTitle = document.querySelector(".about-title");
   if (!aboutTitle) return;
+
+  const r = aboutTitle.getBoundingClientRect();
+
+  const targets = {
+    tl: { left: r.left, top: r.top },
+    tr: { left: r.right, top: r.top },
+    bl: { left: r.left, top: r.bottom },
+    br: { left: r.right, top: r.bottom },
+  };
 
   ["tl", "tr", "bl", "br"].forEach((k) => {
     const el = pinned?.[k];
     if (!el) return;
 
-    // reset fixed pin styles
-    el.style.position = "";
-    el.style.left = "";
-    el.style.top = "";
-    el.style.margin = "";
-    el.style.zIndex = "";
+    document.body.appendChild(el);
 
-    // remove hero corner class, add about docking classes
-    el.classList.remove(`fp-${k}`);
-    el.classList.add("about-plus", `ap-${k}`);
+    el.classList.remove("about-plus", "ap-tl", "ap-tr", "ap-bl", "ap-br");
 
-    // kill transforms
-    gsap.set(el, { x: 0, y: 0, opacity: 1 });
+    gsap.set(el, {
+      position: "fixed",
+      left: targets[k].left,
+      top: targets[k].top,
+      x: 0,
+      y: 0,
+      margin: 0,
+      zIndex: PLUS_Z,
+      opacity: 1,
+    });
 
-    aboutTitle.appendChild(el);
+    el.style.right = "";
+    el.style.bottom = "";
+    el.style.visibility = "";
+  });
+}
+// hulpfunctie: waar staan de corners na de scroll?
+function rectAfterScroll(rectNow, dy) {
+  // scroll down: dy > 0 => rect.top wordt kleiner (minus dy)
+  return {
+    left: rectNow.left,
+    right: rectNow.right,
+    top: rectNow.top - dy,
+    bottom: rectNow.bottom - dy,
+  };
+}
+
+// hero corners: center op frame corners
+function heroCornerDest(frameRectEnd, elRect, k) {
+  const w = elRect.width;
+  const h = elRect.height;
+
+  const cx = k.includes("l") ? frameRectEnd.left : frameRectEnd.right;
+  const cy = k.includes("t") ? frameRectEnd.top : frameRectEnd.bottom;
+
+  return { left: cx - w / 2, top: cy - h / 2 };
+}
+function setFixedFromRect(el, rect) {
+  document.body.appendChild(el);
+
+  el.classList.remove("about-plus", "ap-tl", "ap-tr", "ap-bl", "ap-br");
+
+  gsap.set(el, {
+    position: "fixed",
+    left: rect.left,
+    top: rect.top,
+    x: 0,
+    y: 0,
+    margin: 0,
+    zIndex: PLUS_Z,
+    opacity: 1,
+  });
+
+  el.style.right = "";
+  el.style.bottom = "";
+  el.style.visibility = "";
+
+  return rect;
+}
+
+function measureAboutDockRectNow(el, k, aboutTitle, startRect) {
+  // tijdelijk echt docken zodat we de ECHTE eindpositie meten
+  aboutTitle.appendChild(el);
+
+  el.classList.remove("about-plus", "ap-tl", "ap-tr", "ap-bl", "ap-br");
+  el.classList.add("about-plus", `ap-${k}`);
+
+  // fixed styles weg zodat CSS het echte dock kan bepalen
+  el.style.position = "";
+  el.style.left = "";
+  el.style.top = "";
+  el.style.right = "";
+  el.style.bottom = "";
+  el.style.margin = "";
+  el.style.zIndex = "";
+  el.style.visibility = "hidden";
+
+  gsap.set(el, { x: 0, y: 0, opacity: 1 });
+
+  const rect = el.getBoundingClientRect();
+
+  // terug exact op startpositie zetten als fixed element
+  setFixedFromRect(el, startRect);
+
+  return rect;
+}
+function snapHeroToAbout(pinned) {
+  if (snapBusy) return;
+
+  const hero = document.getElementById("hero");
+  const about = document.getElementById("about");
+  const aboutTitle = document.querySelector(".about-title");
+  if (!hero || !about || !aboutTitle || !pinned) return;
+
+  snapBusy = true;
+
+  const startY = window.scrollY;
+  const endY = about.offsetTop;
+  const dy = endY - startY;
+  const D = 0.9;
+
+  const tl = gsap.timeline({
+    onComplete: () => {
+      snapBusy = false;
+      snapState = "about";
+      dockIntoAbout(pinned);
+      lastScrollY = window.scrollY;
+    },
+  });
+
+  tl.add(scrollToY(endY, D), 0);
+
+  ["tl", "tr", "bl", "br"].forEach((k) => {
+    const el = pinned[k];
+    if (!el) return;
+
+    const startRect = ensureFixedFromRect(el);
+    const targetNow = measureAboutDockRectNow(el, k, aboutTitle, startRect);
+    const targetEnd = rectAfterScroll(targetNow, dy);
+
+    tl.to(
+      el,
+      {
+        x: targetEnd.left - startRect.left,
+        y: targetEnd.top - startRect.top,
+        duration: D,
+        ease: "power2.inOut",
+        zIndex: PLUS_Z
+      },
+      0
+    );
   });
 }
 
-function snapToAboutAndHandoff(pinned) {
-  if (snapDone || snapBusy) return;
+function snapAboutToHero(pinned) {
+  if (snapBusy) return;
 
-  const about = document.getElementById("about");
-  const aboutTitle = document.querySelector(".about-title");
-  if (!about || !aboutTitle) return;
+  const hero = document.getElementById("hero");
+  const heroFrame = document.querySelector(".hero-frame");
+  if (!hero || !heroFrame || !pinned) return;
 
   snapBusy = true;
-  snapDone = true;
+
+  undockFromAboutToFixed(pinned);
 
   const startY = window.scrollY;
-  const endY = about.getBoundingClientRect().top + startY; // robust
+  const endY = hero.offsetTop;
   const dy = endY - startY;
 
-  // Where will the aboutTitle be in the viewport AFTER the scroll finishes?
-  const titleNow = aboutTitle.getBoundingClientRect();
-  const titleEnd = {
-    left: titleNow.left,
-    right: titleNow.right,
-    top: titleNow.top - dy,
-    bottom: titleNow.bottom - dy,
-  };
+  const frameNow = heroFrame.getBoundingClientRect();
+  const frameEnd = rectAfterScroll(frameNow, dy);
 
   const D = 0.9;
 
   const tl = gsap.timeline({
     onComplete: () => {
       snapBusy = false;
-      dockPlusesIntoAbout(pinned);
+      snapState = "hero";
+      lastScrollY = window.scrollY;
     },
   });
 
-  // smooth scroll to about
-tl.add(scrollToY(endY, D), 0);
+  tl.add(scrollToY(endY, D), 0);
 
-  // animate pinned pluses to the about-title corners (final viewport positions)
   ["tl", "tr", "bl", "br"].forEach((k) => {
-    const el = pinned?.[k];
+    const el = pinned[k];
     if (!el) return;
 
     const r = el.getBoundingClientRect();
-    const halfW = r.width / 2;
-    const halfH = r.height / 2;
-
-    const destLeft = k.includes("l") ? titleEnd.left - halfW : titleEnd.right - halfW;
-    const destTop = k.includes("t") ? titleEnd.top - halfH : titleEnd.bottom - halfH;
+    const dest = heroCornerDest(frameEnd, r, k);
 
     tl.to(
       el,
       {
-        x: destLeft - r.left,
-        y: destTop - r.top,
+        x: dest.left - r.left,
+        y: dest.top - r.top,
         duration: D,
         ease: "power2.inOut",
       },
@@ -338,46 +491,60 @@ tl.add(scrollToY(endY, D), 0);
   });
 }
 
-function setupHeroSnap(pinned) {
+function setupBidirectionalSnap(pinned) {
+  lastScrollY = window.scrollY;
+
   const hero = document.getElementById("hero");
-  if (!hero) return;
+  const about = document.getElementById("about");
+  if (!hero || !about) return;
 
-  const SNAP_AT = 0.15; // 15% (tweak this)
+  const scrollBtn = document.querySelector(".hero-scroll");
+  if (scrollBtn && scrollBtn.dataset.bound !== "1") {
+    scrollBtn.dataset.bound = "1";
 
-  let ticking = false;
+    scrollBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+
+      if (snapBusy) return;
+      if (snapState === "hero") {
+        snapHeroToAbout(pinned);
+      }
+    });
+  }
+
+  const SNAP_UP_AT = mobileMq.matches ? 0.22 : 0.15;
 
   window.addEventListener(
     "scroll",
     () => {
-      if (snapDone || snapBusy) return;
-      if (ticking) return;
+      if (snapBusy) return;
 
-      ticking = true;
-      requestAnimationFrame(() => {
-        ticking = false;
+      const y = window.scrollY;
+      const dir = y > lastScrollY ? "down" : y < lastScrollY ? "up" : "none";
+      lastScrollY = y;
 
-              const rect = hero.getBoundingClientRect();
-        const heroH = rect.height || window.innerHeight;
+      if (dir === "none") return;
 
-        // progress: 0 = hero top in view, 1 = hero volledig voorbij
-        const p = Math.min(1, Math.max(0, -rect.top / heroH));
+      if (snapState === "hero" && dir === "down") {
+        const heroH = hero.offsetHeight || window.innerHeight;
 
-        if (p >= SNAP_AT && p < 0.95) {
-          snapToAboutAndHandoff(pinned);
+        if (window.scrollY > 2 && window.scrollY < heroH * 0.95) {
+          snapHeroToAbout(pinned);
         }
-      });
+      }
+
+      if (snapState === "about" && dir === "up") {
+        const aboutTopY = about.getBoundingClientRect().top + window.scrollY;
+        const aboutH = about.offsetHeight || window.innerHeight;
+        const q = (window.scrollY - aboutTopY) / aboutH;
+
+        if (q <= SNAP_UP_AT) {
+          snapAboutToHero(pinned);
+        }
+      }
     },
     { passive: true }
   );
-
-  // Also make the "SCROLL DOWN" button use the same logic (no weird double behavior)
-  const scrollBtn = document.querySelector(".hero-scroll");
-  if (scrollBtn) {
-    scrollBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      snapToAboutAndHandoff(pinned);
-    });
-  }
 }
 function pinHomePluses() {
   const map = {
@@ -399,14 +566,13 @@ function pinHomePluses() {
       x: 0,
       y: 0,
       margin: 0,
-      zIndex: 85,
+      zIndex: PLUS_Z,
       opacity: 1,
     });
   });
 
   return map;
 }
-
 async function boot() {
   try {
     await brandLogoEl?.decode();
@@ -421,14 +587,80 @@ async function boot() {
   syncLogoUrl();
   syncMountSize();
   syncPrintFxSize();
-
+bindMobileModules();
   requestAnimationFrame(() => requestAnimationFrame(playIntro));
 }
 
-window.addEventListener("resize", () => {
+function refreshResponsiveLayout() {
   syncLogoUrl();
   syncMountSize();
   syncPrintFxSize();
-});
 
+  if (!pinnedHome) return;
+
+  if (snapState === "about") {
+    dockIntoAbout(pinnedHome);
+    return;
+  }
+
+  const heroFrame = document.querySelector(".hero-frame");
+  if (!heroFrame) return;
+
+  const r = heroFrame.getBoundingClientRect();
+
+const targets = {
+  tl: { left: r.left, top: r.top },
+  tr: { left: r.right, top: r.top },
+  bl: { left: r.left, top: r.bottom },
+  br: { left: r.right, top: r.bottom },
+};
+
+  Object.entries(targets).forEach(([k, pos]) => {
+    const el = pinnedHome[k];
+    if (!el) return;
+
+    gsap.set(el, {
+      position: "fixed",
+      left: pos.left,
+      top: pos.top,
+      x: 0,
+      y: 0,
+      margin: 0,
+      zIndex: PLUS_Z,
+      opacity: 1,
+    });
+  });
+}
+
+window.addEventListener("resize", refreshResponsiveLayout);
+const mobileMq = window.matchMedia("(max-width: 900px)");
+
+function bindMobileModules() {
+  document.querySelectorAll(".module").forEach((module) => {
+    const head = module.querySelector(".module-head");
+    const strip = module.querySelector(".module-strip");
+
+    [head, strip].forEach((trigger) => {
+      if (!trigger || trigger.dataset.bound === "1") return;
+
+      trigger.dataset.bound = "1";
+      trigger.addEventListener("click", (e) => {
+        if (!mobileMq.matches) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const wasOpen = module.classList.contains("is-open");
+
+        document
+          .querySelectorAll(".module.is-open")
+          .forEach((m) => m.classList.remove("is-open"));
+
+        if (!wasOpen) {
+          module.classList.add("is-open");
+        }
+      });
+    });
+  });
+}
 boot();

@@ -1,16 +1,25 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap");
+@font-face {
+  font-family: "Medium";
+  src: url("/fonts/medium.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 html {
   scrollbar-gutter: stable;
 }
 :root {
-  --font-display: "JetBrains Mono", monospace;
+  --font-display: "Medium", sans-serif;
   --font-body: "Inter", -apple-system, sans-serif;
+  --font-jet: "JetBrains Mono", -apple-system, sans-serif;
   --bg: #070707;
   --orange: #ff6b00;
   --orange-rgb: 255 107 0;
   --purple: #8a2be2;
   --ink: #171717;
-  --grid: rgba(255, 107, 0, 0.95);
+  --grid: var(--orange);
   --topbar-h: 64px;
   --frameInset: 84px;
   --line-w: 2px;
@@ -19,6 +28,12 @@ html {
   --artW: 1920px;
   --artH: 1080px;
   --vh: 100vh;
+  --logo-cell-w: calc(var(--x25) - var(--x0));
+  --logo-cell-h: var(--y0);
+  --logo-pad-x: clamp(8px, calc(var(--logo-cell-w) * 0.12), 42px);
+  --logo-w: clamp(60px, calc(var(--logo-cell-w) * 0.22), 110px);
+  --sideCol: 0.12;
+  --navH: clamp(56px, 5vw, 76px);
 }
 @supports (height: 100svh) {
   :root {
@@ -43,29 +58,38 @@ body {
   -moz-osx-font-smoothing: grayscale;
 } /* ─────────────────────────────────────────────────────────── */ /* GRID METRICS (LOCKED POSTER FRAME) */ /* ─────────────────────────────────────────────────────────── */
 :root {
-  --ratio: 1.7777777778;
-  --availW: calc(100vw - (2 * var(--frameInset)));
-  --availH: calc(var(--vh) - (2 * var(--frameInset)));
-  --frameW: min(var(--availW), calc(var(--availH) * var(--ratio)));
+  --ratio: 1.9;
+
+  /* speel hiermee */
+  --leftGap: 96px;
+  --rightGap: 120px;
+  --frameInsetY: 32px;
+
+  --x0: var(--leftGap);
+  --x1: calc(100vw - var(--rightGap));
+  --frameW: calc(var(--x1) - var(--x0));
   --frameH: calc(var(--frameW) / var(--ratio));
-  --x0: calc((100vw - var(--frameW)) / 2);
+
   --y0: calc((var(--vh) - var(--frameH)) / 2);
-  --x1: calc(var(--x0) + var(--frameW));
   --y1: calc(var(--y0) + var(--frameH));
+
   --x25: calc(var(--x0) + var(--frameW) * 0.25);
   --x50: calc(var(--x0) + var(--frameW) * 0.5);
   --x75: calc(var(--x0) + var(--frameW) * 0.75);
   --ySplit: calc(var(--y0) + var(--frameH) * 0.52);
+
   --s: calc(var(--frameW) / 1920px);
   --OX: var(--x0);
   --OY: var(--y0);
-} /* micro grid (always on, subtle) */
+  --aboutTopH: calc(var(--frameH) * 0.52);
+  --aboutBottomH: calc(var(--frameH) - var(--aboutTopH));
+}
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9;
+  z-index: 5;
   opacity: 0.3;
   background-image:
     linear-gradient(rgba(255, 107, 0, 0.07) 1px, transparent 1px),
@@ -88,7 +112,7 @@ body::after {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 60;
+  z-index: 20;
   opacity: 1;
   background:
     linear-gradient(
@@ -152,7 +176,7 @@ body::after {
   position: fixed;
   inset: 0 0 auto 0;
   height: var(--topbar-h);
-  z-index: 50;
+  z-index: 200;
   display: grid;
   grid-template-columns: 200px 1fr 220px;
   align-items: center;
@@ -161,17 +185,16 @@ body::after {
 } /* logo centered in left-top square */
 .logo-mount {
   position: fixed;
-  left: calc(var(--x0) + (90px * var(--s)));
-  top: calc(var(--y0) / 4);
-  transform: translate(-50%);
-  z-index: 55;
-  width: 180px;
-  height: 44px;
+  left: calc(var(--x0) + 12px);
+  top: calc(var(--y0) / 2);
+  transform: translateY(-50%);
+  z-index: 203;
   opacity: 0;
   pointer-events: none;
   isolation: isolate;
   --logo-url: none;
 }
+
 .logo-mount img {
   position: absolute;
   inset: 0;
@@ -181,7 +204,7 @@ body::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--orange);
+  background: var(--bg);
   -webkit-mask-image: var(--logo-url);
   mask-image: var(--logo-url);
   -webkit-mask-repeat: no-repeat;
@@ -191,9 +214,10 @@ body::after {
   -webkit-mask-position: left center;
   mask-position: left center;
 }
+
 .logo {
-  height: 44px;
-  width: auto;
+  width: var(--logo-w);
+  height: auto;
   display: block;
 }
 .logo-float {
@@ -207,48 +231,57 @@ body::after {
 .nav-rail {
   position: fixed;
   top: 0;
-  left: var(--x25);
-  width: calc(var(--x75) - var(--x25));
+  left: var(--x0);
+  width: calc(var(--x1) - var(--x0));
   height: var(--y0);
   background: var(--orange);
   display: grid;
   place-items: center;
   pointer-events: auto;
-  z-index: 900;
+  z-index: 201;
 }
+
 .nav-links {
-  display: flex;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+  width: min(760px, calc(var(--x1) - var(--x0) - 320px));
+  margin: 0 auto;
+
   font-family: var(--font-display);
   font-size: 12px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  text-align: center;
 }
+
 .nav-links a {
-  color: #0a0a0a;
+  justify-self: center;
+  color: var(--bg);
   text-decoration: none;
 }
 .contact-pill {
   position: fixed;
-  left: calc((var(--x75) + var(--x1)) / 2);
+  left: auto;
+  right: calc((100vw - var(--x1)) + 12px);
   top: calc(var(--y0) / 2);
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
   pointer-events: auto;
-  height: 34px;
-  min-width: 200px;
+  height: 28px;
+  min-width: 150px;
   padding: 0 16px;
   border-radius: 999px;
-  background: var(--purple);
-  color: #0a0a0a;
+  background: var(--bg);
+  color: var(--orange);
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  z-index: 50;
+  z-index: 10000;
 } /* ─────────────────────────────────────────────────────────── */ /* INTRO */ /* ─────────────────────────────────────────────────────────── */
 #brandLogo {
   opacity: 0;
@@ -321,7 +354,7 @@ body::after {
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 80;
+  z-index: 203;
   pointer-events: none;
   will-change: transform, opacity;
   transform-origin: top left;
@@ -339,6 +372,7 @@ body::after {
   mask-size: contain;
   -webkit-mask-position: center;
   mask-position: center;
+  z-index: 203;
 }
 .logo-printfx__printed {
   -webkit-clip-path: inset(calc((1 - var(--py)) * 100% + var(--layerH)) 0 0 0);
@@ -361,7 +395,7 @@ body::after {
   height: var(--vh);
   min-height: 720px;
   padding-top: var(--topbar-h);
-  z-index: 65;
+  z-index: 30;
   opacity: 1;
   pointer-events: auto;
 }
@@ -371,52 +405,64 @@ body::after {
   top: var(--y0);
   width: var(--frameW);
   height: var(--frameH);
-  z-index: 46;
+  z-index: 31;
   pointer-events: none;
 } /* home corner pluses exist from start but start invisible (JS crossfades them) */
+
 .frame-plus {
   position: absolute;
-  width: 28px;
-  height: 28px;
+  width: 0;
+  height: 0;
   opacity: 1;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 20001;
+  font-size: 0;
+  line-height: 0;
+  color: transparent;
 }
-.frame-plus::before,
-.frame-plus::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  background: var(--orange);
-  transform: translate(-50%, -50%);
-}
+
 .frame-plus::before {
-  width: 22px;
-  height: 4px;
+  content: "+";
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 20001;
+  font-family: var(--font-jet);
+  font-size: 35px;
+  line-height: 1;
+  font-weight: 1000;
+
+  color: var(--bg);
+  -webkit-text-stroke: 2px var(--orange);
+
+  /* center van de glyph exact op het ankerpunt */
+  transform: translate(-50%, -50%) translate(0px, -1px);
 }
-.frame-plus::after {
-  width: 4px;
-  height: 22px;
-}
+
 .fp-tl {
-  top: -14px;
-  left: -14px;
+  left: 0;
+  top: 0;
 }
+
 .fp-tr {
-  top: -14px;
-  right: -14px;
+  right: 0;
+  top: 0;
 }
+
 .fp-bl {
-  bottom: -14px;
-  left: -14px;
+  left: 0;
+  bottom: 0;
 }
+
 .fp-br {
-  bottom: -14px;
-  right: -14px;
+  right: 0;
+  bottom: 0;
 }
 .hero-stage {
   position: absolute;
   inset: 0;
-  z-index: 47;
+  z-index: 31;
 } /* ===== your existing hero layout (unchanged) ===== */
 .hero-word,
 .hero-dark__creatieve,
@@ -430,18 +476,19 @@ body::after {
   position: absolute;
   color: var(--orange);
   line-height: 0.85;
-  font-size: calc(200px * var(--s));
+  font-size: calc(150px * var(--s));
+  z-index: 1;
 }
 .word-odd {
   left: calc(var(--OX) + (1px * var(--s)));
   top: calc(var(--OY) + (20px * var(--s)));
 }
 .word-unit {
-  left: calc(var(--OX) + (450px * var(--s)));
+  left: calc(var(--OX) + (550px * var(--s)));
   top: calc(var(--OY) + (20px * var(--s)));
 }
 .word-stu {
-  left: calc(var(--OX) + (760px * var(--s)));
+  left: calc(var(--OX) + (890px * var(--s)));
   top: calc(var(--OY) + (370px * var(--s)));
 }
 .word-dio {
@@ -457,8 +504,8 @@ body::after {
   transform: translate(0.06em, -50%);
   pointer-events: none;
 }
-.word-stu .punct .star,
-.word-stu .punct .dot {
+.word-stu .punct,
+.word-stu .punct {
   position: absolute;
   left: 25%;
   transform: translateX(-50%);
@@ -484,7 +531,7 @@ body::after {
   left: calc(var(--OX) + (1px * var(--s)));
   color: var(--ink);
   opacity: 1;
-  font-size: calc(200px * var(--s));
+  font-size: calc(150px * var(--s));
   line-height: 0.85;
 }
 .hero-dark__creatieve {
@@ -527,9 +574,9 @@ body::after {
   width: calc(420px * var(--s));
   border-radius: 999px;
   background: var(--purple);
-  color: #0a0a0a;
-  font-family: var(--font-display);
-  font-size: calc(30px * var(--s));
+  color: var(--bg);
+  font-family: var(--font-jet);
+  font-size: calc(25px * var(--s));
   letter-spacing: 0.18em;
   text-transform: uppercase;
   display: inline-flex;
@@ -537,12 +584,13 @@ body::after {
   justify-content: center;
   text-decoration: none;
   z-index: 4;
+  border: 2px solid var(--bg);
 }
 .hero-copy {
   position: absolute;
   left: calc(var(--OX) + (540px * var(--s)));
   top: calc(var(--OY) + (740px * var(--s)));
-  font-family: var(--font-display);
+  font-family: var(--font-jet);
   font-size: calc(28px * var(--s));
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -560,7 +608,7 @@ body::after {
   display: grid;
   place-items: center;
   text-decoration: none;
-  font-family: var(--font-display);
+  font-family: var(--font-jet);
   font-size: calc(18px * var(--s));
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -569,17 +617,12 @@ body::after {
 }
 .hero-scroll__chev {
   margin-left: calc(8px * var(--s));
-  font-size: calc(20px * var(--s));
+  font-size: calc(30px * var(--s));
+  padding-bottom: 10%;
 }
 /* .section {
   height: 60vh;
 } */
-@media (max-width: 900px) {
-  :root {
-    --frameInset: 22px;
-  }
-}
-
 /* ───────────────────────────────────────────── */
 /* PAGE 2 (ABOUT) */
 /* ───────────────────────────────────────────── */
@@ -596,9 +639,8 @@ body::after {
   top: var(--y0);
   width: var(--frameW);
   height: var(--frameH);
-
   display: grid;
-  grid-template-rows: calc(var(--frameH) * 0.52) 1fr;
+  grid-template-rows: var(--aboutTopH) var(--aboutBottomH);
   gap: 0;
 }
 
@@ -620,34 +662,42 @@ body::after {
 .about-title {
   position: relative;
   border: var(--line-w) solid var(--orange);
-  padding: calc(48px * var(--s)) calc(56px * var(--s));
   overflow: visible;
+
+  display: grid;
+  place-items: center;
+
+  padding: clamp(20px, 3vw, 40px);
 }
 /* wanneer de plussen gedockt zijn in .about-title */
 .about-title .about-plus {
   position: absolute;
-  z-index: 6;
+  z-index: 100000;
   pointer-events: none;
+  width: 0;
+  height: 0;
+  overflow: visible;
 }
 
-/* zelfde logica als fp-* (center op hoek) */
 .about-title .about-plus.ap-tl {
-  left: calc(-24px * var(--s));
-  top: calc(-24px * var(--s));
-}
-.about-title .about-plus.ap-tr {
-  right: calc(-24px * var(--s));
-  top: calc(-24px * var(--s));
-}
-.about-title .about-plus.ap-bl {
-  left: calc(-24px * var(--s));
-  bottom: calc(-24px * var(--s));
-}
-.about-title .about-plus.ap-br {
-  right: calc(-24px * var(--s));
-  bottom: calc(-24px * var(--s));
+  left: 0;
+  top: 0;
 }
 
+.about-title .about-plus.ap-tr {
+  right: 0;
+  top: 0;
+}
+
+.about-title .about-plus.ap-bl {
+  left: 0;
+  bottom: 0;
+}
+
+.about-title .about-plus.ap-br {
+  right: 0;
+  bottom: 0;
+}
 /* corner pluses on title block */
 .about-corner {
   position: absolute;
@@ -677,13 +727,19 @@ body::after {
 
 /* big title text (tweak if needed) */
 .about-heading {
+  margin: 0;
+
+  width: max-content;
+  max-width: 100%;
+
   font-family: var(--font-display);
   color: var(--orange);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  line-height: 0.76;
-  font-size: calc(120px * var(--s));
-  padding: auto;
+  line-height: 0.86;
+  font-size: calc(100px * var(--s));
+
+  text-align: left;
 }
 
 /* BOTTOM modules */
@@ -694,12 +750,13 @@ body::after {
   --modStrip: calc(64px * var(--s));
 }
 
-/* BOTTOM modules container (zoals je al had, maar keep it clean) */
+/* BOTTOM modules container */
 .about-modules {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   border-top: var(--line-w) solid var(--orange);
   height: 100%;
+  z-index: 65;
 }
 
 /* module basis */
@@ -806,7 +863,7 @@ body::after {
   margin: 0;
   padding: 0;
 
-  font-family: var(--font-display);
+  font-family: var(--font-jet);
   font-size: calc(18px * var(--s));
   letter-spacing: 0.06em;
   line-height: 1.45;
@@ -879,4 +936,392 @@ body::after {
 .module:hover .module-icon::after {
   left: 54%;
   transform: translate(-50%, -50%) rotate(-45deg);
+}
+/* ABOUT: dezelfde mark als in hero (ster + dot), perfect gecentreerd */
+.sd-mark {
+  position: relative;
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  vertical-align: middle;
+
+  /* fine-tune alleen deze als je hoger/lager wil */
+  transform: translateY(-0.24em) translateX(-0.24em);
+}
+
+.sd-mark .sd-star {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  line-height: 1;
+  font-size: 0.62em;
+  color: currentColor;
+}
+
+.sd-mark .sd-dot {
+  position: absolute;
+  left: 47%;
+  bottom: -0.1em;
+  transform: translateX(-50%);
+  width: 0.18em;
+  height: 0.18em;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --headerH: 64px;
+    --topbar-h: var(--headerH);
+
+    /* echte mobile poster-frame inset */
+    --mobileInsetX: 0.6rem;
+    --mobileInsetY: 0.6rem;
+
+    --line-w: 2px;
+    --grid: rgba(255, 107, 0, 0.82);
+
+    --x0: var(--mobileInsetX);
+    --x1: calc(100vw - var(--mobileInsetX));
+    --frameW: calc(var(--x1) - var(--x0));
+
+    --y0: calc(var(--headerH) + var(--mobileInsetY));
+    --y1: calc(var(--vh) - var(--mobileInsetY));
+    --frameH: calc(var(--y1) - var(--y0));
+
+    --x25: calc(var(--x0) + var(--frameW) * 0.25);
+    --x50: calc(var(--x0) + var(--frameW) * 0.5);
+    --x75: calc(var(--x0) + var(--frameW) * 0.75);
+    /* --ySplit: calc(var(--y0) + var(--frameH) * 0.57); */
+    --y33: calc(var(--y0) + var(--frameH) * 0.3333);
+    --y66: calc(var(--y0) + var(--frameH) * 0.6666);
+
+    --OX: var(--x0);
+    --OY: var(--y0);
+
+    --logo-pad-x: 12px;
+    --logo-w: 58px;
+    --mScale: min(calc(var(--frameW) / 390px), calc(var(--frameH) / 780px));
+  }
+
+  body::before {
+    opacity: 0.14;
+    background-size:
+      20px 20px,
+      20px 20px,
+      12px 12px,
+      12px 12px;
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+    opacity: 1;
+    background:
+    /* verticale frame lijnen */
+      linear-gradient(
+        to right,
+        transparent calc(var(--x0) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--x0) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--x0) + (var(--line-w) / 2)),
+        transparent calc(var(--x0) + (var(--line-w) / 2))
+      ),
+      linear-gradient(
+        to right,
+        transparent calc(var(--x1) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--x1) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--x1) + (var(--line-w) / 2)),
+        transparent calc(var(--x1) + (var(--line-w) / 2))
+      ),
+      linear-gradient(
+        to right,
+        transparent calc(var(--x25) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--x25) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--x25) + (var(--line-w) / 2)),
+        transparent calc(var(--x25) + (var(--line-w) / 2))
+      ),
+      linear-gradient(
+        to right,
+        transparent calc(var(--x50) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--x50) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--x50) + (var(--line-w) / 2)),
+        transparent calc(var(--x50) + (var(--line-w) / 2))
+      ),
+      linear-gradient(
+        to right,
+        transparent calc(var(--x75) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--x75) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--x75) + (var(--line-w) / 2)),
+        transparent calc(var(--x75) + (var(--line-w) / 2))
+      ),
+      /* horizontale frame lijnen */
+        linear-gradient(
+          to bottom,
+          transparent calc(var(--y0) - (var(--line-w) / 2)),
+          var(--grid) calc(var(--y0) - (var(--line-w) / 2)),
+          var(--grid) calc(var(--y0) + (var(--line-w) / 2)),
+          transparent calc(var(--y0) + (var(--line-w) / 2))
+        ),
+      linear-gradient(
+        to bottom,
+        transparent calc(var(--y33) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--y33) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--y33) + (var(--line-w) / 2)),
+        transparent calc(var(--y33) + (var(--line-w) / 2))
+      ),
+      linear-gradient(
+        to bottom,
+        transparent calc(var(--y66) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--y66) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--y66) + (var(--line-w) / 2)),
+        transparent calc(var(--y66) + (var(--line-w) / 2))
+      ),
+      linear-gradient(
+        to bottom,
+        transparent calc(var(--y1) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--y1) - (var(--line-w) / 2)),
+        var(--grid) calc(var(--y1) + (var(--line-w) / 2)),
+        transparent calc(var(--y1) + (var(--line-w) / 2))
+      );
+  }
+  .topbar {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: var(--headerH);
+    z-index: 200;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: center;
+    padding: 0;
+  }
+
+  .logo-mount {
+    left: calc(var(--x0) + var(--logo-pad-x));
+    top: calc(var(--headerH) / 2);
+    transform: translateY(-50%);
+    z-index: 203;
+  }
+
+  .logo {
+    width: var(--logo-w);
+    height: auto;
+    z-index: 203;
+  }
+
+  .nav-rail {
+    position: fixed;
+    top: 0;
+    left: var(--x25);
+    width: calc(var(--x75) - var(--x25));
+    height: var(--y0);
+    background: var(--orange);
+    display: grid;
+    place-items: center;
+
+    overflow: hidden;
+    z-index: 201;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 8px;
+    padding: 0 8px;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    font-family: var(--font-jet);
+  }
+
+  .nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .contact-pill {
+    position: fixed;
+    left: calc((var(--x75) + var(--x1)) / 2);
+    top: calc(var(--headerH) / 2);
+    transform: translate(-50%, -50%);
+    width: calc((var(--x1) - var(--x75)) - 10px);
+    min-width: 0;
+    height: 30px;
+    padding: 0 6px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    z-index: 202;
+  }
+
+  .hero {
+    height: var(--vh);
+    min-height: 0;
+    padding-top: 0;
+  }
+
+  .hero-frame {
+    left: var(--x0);
+    top: var(--y0);
+    width: var(--frameW);
+    height: var(--frameH);
+  }
+
+  .hero-stage {
+    position: absolute;
+    inset: auto;
+    left: var(--x0);
+    top: var(--y0);
+    width: var(--frameW);
+    height: var(--frameH);
+  }
+
+  .hero-word {
+    font-size: calc(74px * var(--mScale));
+    line-height: 0.84;
+  }
+
+  .hero-dark__creatieve,
+  .hero-dark__design {
+    font-size: calc(58px * var(--mScale));
+    line-height: 0.72;
+    opacity: 1;
+  }
+
+  .word-odd {
+    left: calc(10px * var(--mScale));
+    top: calc(18px * var(--mScale));
+  }
+
+  .word-unit {
+    left: calc(145px * var(--mScale));
+    top: calc(18px * var(--mScale));
+  }
+
+  .hero-dark__creatieve {
+    left: calc(8px * var(--mScale));
+    top: calc(96px * var(--mScale));
+  }
+
+  .hero-dark__design {
+    left: calc(8px * var(--mScale));
+    top: calc(154px * var(--mScale));
+  }
+
+  .word-stu {
+    left: calc(225px * var(--mScale));
+    top: calc(140px * var(--mScale));
+  }
+
+  .word-dio {
+    left: calc(8px * var(--mScale));
+    top: calc(220px * var(--mScale));
+  }
+
+  .hero-pill {
+    left: calc(125px * var(--mScale));
+    top: calc(285px * var(--mScale));
+    width: calc(150px * var(--mScale));
+    height: calc(36px * var(--mScale));
+    min-width: 0;
+    font-size: calc(10px * var(--mScale));
+    letter-spacing: 0.12em;
+  }
+
+  .hero-copy {
+    left: calc(130px * var(--mScale));
+    top: calc(338px * var(--mScale));
+    font-size: calc(15px * var(--mScale));
+    line-height: 1.35;
+    letter-spacing: 0.1em;
+  }
+
+  .hero-scroll {
+    left: 50%;
+    width: 50%;
+    bottom: 0;
+    height: calc(34px * var(--mScale));
+    font-size: calc(10px * var(--mScale));
+    letter-spacing: 0.08em;
+  }
+
+  .hero-scroll__chev {
+    margin-left: calc(3px * var(--mScale));
+    font-size: calc(12px * var(--mScale));
+  }
+  .about {
+    height: var(--vh);
+  }
+
+  .about-frame {
+    position: absolute;
+    left: var(--x0);
+    top: var(--y0);
+    width: var(--frameW);
+    height: var(--frameH);
+    display: grid;
+    grid-template-rows: 52% 48%;
+  }
+
+  .about-top {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .about-title {
+    padding: 14px 14px 16px;
+  }
+
+  .about-heading {
+    font-size: clamp(42px, 11vw, 58px);
+    line-height: 0.82;
+    letter-spacing: 0.04em;
+  }
+
+  .about-modules {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-top: var(--line-w) solid var(--orange);
+    border-bottom: var(--line-w) solid var(--orange);
+    height: 80%;
+  }
+
+  .module-head {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .module-strip {
+    height: 44px;
+  }
+
+  .module-body ul {
+    font-size: 9px;
+    line-height: 1.35;
+  }
+}
+/* INTRO moet ALTIJD boven de header zitten */
+.landing {
+  z-index: 1200;
+}
+
+#logoPrintFx,
+.logo-float {
+  z-index: 1210;
+}
+
+/* tijdens intro header volledig weg */
+body.is-intro .topbar,
+body.is-intro .nav-rail,
+body.is-intro .contact-pill,
+body.is-intro .logo-mount {
+  opacity: 0;
+  pointer-events: none;
+}
+.about-top,
+.about-title,
+.about-modules,
+.module {
+  min-height: 0;
 }
