@@ -291,10 +291,11 @@ function dockIntoAbout(pinned) {
   if (!aboutTitle) return;
 
   const r = aboutTitle.getBoundingClientRect();
+  const headerH = mobileMq.matches ? getHeaderH() : 0;
 
   const targets = {
-    tl: { left: r.left, top: r.top },
-    tr: { left: r.right, top: r.top },
+    tl: { left: r.left, top: Math.max(r.top, headerH) },
+    tr: { left: r.right, top: Math.max(r.top, headerH) },
     bl: { left: r.left, top: r.bottom },
     br: { left: r.right, top: r.bottom },
   };
@@ -323,7 +324,6 @@ function dockIntoAbout(pinned) {
     el.style.visibility = "";
   });
 }
-// hulpfunctie: waar staan de corners na de scroll?
 function rectAfterScroll(rectNow, dy) {
   // scroll down: dy > 0 => rect.top wordt kleiner (minus dy)
   return {
@@ -404,7 +404,7 @@ function snapHeroToAbout(pinned) {
   snapBusy = true;
 
   const startY = window.scrollY;
-  const endY = about.offsetTop;
+ const endY = about.offsetTop - getHeaderOffset();
   const dy = endY - startY;
   const D = 0.9;
 
@@ -426,7 +426,9 @@ function snapHeroToAbout(pinned) {
     const startRect = ensureFixedFromRect(el);
     const targetNow = measureAboutDockRectNow(el, k, aboutTitle, startRect);
     const targetEnd = rectAfterScroll(targetNow, dy);
-
+  if (mobileMq.matches && (k === "tl" || k === "tr")) {
+    targetEnd.top = Math.max(targetEnd.top, getHeaderH());
+  }
     tl.to(
       el,
       {
@@ -607,10 +609,11 @@ function refreshResponsiveLayout() {
   if (!heroFrame) return;
 
   const r = heroFrame.getBoundingClientRect();
+const headerH = mobileMq.matches ? getHeaderH() : 0;
 
 const targets = {
-  tl: { left: r.left, top: r.top },
-  tr: { left: r.right, top: r.top },
+  tl: { left: r.left, top: Math.max(r.top, headerH) },
+  tr: { left: r.right, top: Math.max(r.top, headerH) },
   bl: { left: r.left, top: r.bottom },
   br: { left: r.right, top: r.bottom },
 };
@@ -634,8 +637,9 @@ const targets = {
 
 window.addEventListener("resize", refreshResponsiveLayout);
 const mobileMq = window.matchMedia("(max-width: 900px)");
-
 function bindMobileModules() {
+  const modulesWrap = document.querySelector(".about-modules");
+
   document.querySelectorAll(".module").forEach((module) => {
     const head = module.querySelector(".module-head");
     const strip = module.querySelector(".module-strip");
@@ -652,15 +656,32 @@ function bindMobileModules() {
 
         const wasOpen = module.classList.contains("is-open");
 
-        document
-          .querySelectorAll(".module.is-open")
-          .forEach((m) => m.classList.remove("is-open"));
+        document.querySelectorAll(".module.is-open").forEach((m) => {
+          m.classList.remove("is-open");
+        });
+
+        modulesWrap?.classList.remove("has-open");
 
         if (!wasOpen) {
           module.classList.add("is-open");
+          modulesWrap?.classList.add("has-open");
         }
       });
     });
   });
+}
+
+function getHeaderH() {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue("--headerH");
+  const val = parseFloat(raw);
+  return Number.isFinite(val) ? val : 0;
+}
+function getHeaderOffset() {
+  const styles = getComputedStyle(document.documentElement);
+  return (
+    parseFloat(styles.getPropertyValue("--headerH")) ||
+    parseFloat(styles.getPropertyValue("--topbar-h")) ||
+    0
+  );
 }
 boot();
