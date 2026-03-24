@@ -1,5 +1,6 @@
 import gsap from "https://esm.sh/gsap@3.12.2";
 import ScrollToPlugin from "https://esm.sh/gsap@3.12.2/ScrollToPlugin";
+import "./projects/projects.js";
 gsap.registerPlugin(ScrollToPlugin);
 // ✅ scroll helper (werkt met plugin OF zonder)
 function scrollToY(y, duration = 0.9) {
@@ -390,7 +391,7 @@ function measureAboutDockRectNow(el, k, aboutTitle, startRect) {
 
   return rect;
 }
-function snapHeroToAbout(pinned) {
+function snapHeroToAbout(pinned, opts = {}) {
   if (snapBusy) return;
 
   const hero = document.getElementById("hero");
@@ -400,17 +401,16 @@ function snapHeroToAbout(pinned) {
 
   snapBusy = true;
 
- const startY = window.scrollY;
+  const startY = window.scrollY;
 
   let endY;
-
   if (mobileMq.matches) {
     endY = about.offsetTop - getHeaderOffset();
   } else {
     endY = about.offsetTop;
   }
 
-const dy = endY - startY;
+  const dy = endY - startY;
   const D = 0.9;
 
   const tl = gsap.timeline({
@@ -419,6 +419,7 @@ const dy = endY - startY;
       snapState = "about";
       dockIntoAbout(pinned);
       lastScrollY = window.scrollY;
+      opts.onComplete?.();
     },
   });
 
@@ -431,9 +432,11 @@ const dy = endY - startY;
     const startRect = ensureFixedFromRect(el);
     const targetNow = measureAboutDockRectNow(el, k, aboutTitle, startRect);
     const targetEnd = rectAfterScroll(targetNow, dy);
-  if (mobileMq.matches && (k === "tl" || k === "tr")) {
-    targetEnd.top = Math.max(targetEnd.top, getHeaderH());
-  }
+
+    if (mobileMq.matches && (k === "tl" || k === "tr")) {
+      targetEnd.top = Math.max(targetEnd.top, getHeaderH());
+    }
+
     tl.to(
       el,
       {
@@ -441,13 +444,12 @@ const dy = endY - startY;
         y: targetEnd.top - startRect.top,
         duration: D,
         ease: "power2.inOut",
-        zIndex: PLUS_Z
+        zIndex: PLUS_Z,
       },
       0
     );
   });
 }
-
 function snapAboutToHero(pinned) {
   if (snapBusy) return;
 
@@ -497,6 +499,59 @@ function snapAboutToHero(pinned) {
     );
   });
 }
+function snapAboutToProjects(pinned) {
+  if (snapBusy) return;
+
+  const about = document.getElementById("about");
+  const projects = document.getElementById("projects");
+  const projectsFrame = document.querySelector(".projects-frame");
+  if (!about || !projects || !projectsFrame || !pinned) return;
+
+  snapBusy = true;
+
+  // plusjes zitten in about gedockt, dus eerst losmaken en fixed maken
+  undockFromAboutToFixed(pinned);
+
+  const startY = window.scrollY;
+  const endY = projects.offsetTop;
+  const dy = endY - startY;
+
+  const frameNow = projectsFrame.getBoundingClientRect();
+  const frameEnd = rectAfterScroll(frameNow, dy);
+
+  const D = 0.9;
+
+  const tl = gsap.timeline({
+    onComplete: () => {
+      snapBusy = false;
+      snapState = "projects";
+      lastScrollY = window.scrollY;
+    },
+  });
+
+  tl.add(scrollToY(endY, D), 0);
+
+  ["tl", "tr", "bl", "br"].forEach((k) => {
+    const el = pinned[k];
+    if (!el) return;
+
+    const r = ensureFixedFromRect(el);
+    const dest = heroCornerDest(frameEnd, r, k);
+
+    tl.to(
+      el,
+      {
+        x: dest.left - r.left,
+        y: dest.top - r.top,
+        duration: D,
+        ease: "power2.inOut",
+        zIndex: PLUS_Z,
+      },
+      0
+    );
+  });
+}
+
 function bindScrollTriggers(pinned) {
   const triggers = document.querySelectorAll(".hero-scroll, .about-scroll");
 
@@ -518,17 +573,30 @@ function bindScrollTriggers(pinned) {
       const target = document.querySelector(href);
       if (!target) return;
 
-      // MOBILE: enkel smooth scroll, geen snap
       if (mobileMq.matches) {
         const y = target.offsetTop - getHeaderOffset();
         scrollToY(y, 0.9);
         return;
       }
 
-      // DESKTOP: bestaand snap gedrag behouden
       if (target.id === "about") {
-        if (snapState === "hero") {
+        if (snapState === "hero" || snapState === "projects") {
           snapHeroToAbout(pinned);
+        } else {
+          scrollToY(target.offsetTop, 0.9);
+        }
+        return;
+      }
+
+      if (target.id === "projects") {
+        if (snapState === "about") {
+          snapAboutToProjects(pinned);
+        } else if (snapState === "hero") {
+          snapHeroToAbout(pinned, {
+            onComplete: () => {
+              requestAnimationFrame(() => snapAboutToProjects(pinned));
+            },
+          });
         } else {
           scrollToY(target.offsetTop, 0.9);
         }
@@ -544,7 +612,8 @@ function setupBidirectionalSnap(pinned) {
 
   const hero = document.getElementById("hero");
   const about = document.getElementById("about");
-  if (!hero || !about) return;
+  const projects = document.getElementById("projects");
+  if (!hero || !about || !projects) return;
 
   bindScrollTriggers(pinned);
 
@@ -558,6 +627,7 @@ function setupBidirectionalSnap(pinned) {
   }
 
   const SNAP_UP_AT = 0.15;
+  const SNAP_DOWN_AT = 0.12;
 
   window.addEventListener(
     "scroll",
@@ -578,6 +648,16 @@ function setupBidirectionalSnap(pinned) {
         }
       }
 
+      if (snapState === "about" && dir === "down") {
+        const aboutTopY = about.getBoundingClientRect().top + window.scrollY;
+        const aboutH = about.offsetHeight || window.innerHeight;
+        const q = (window.scrollY - aboutTopY) / aboutH;
+
+        if (q >= SNAP_DOWN_AT) {
+          snapAboutToProjects(pinned);
+        }
+      }
+
       if (snapState === "about" && dir === "up") {
         const aboutTopY = about.getBoundingClientRect().top + window.scrollY;
         const aboutH = about.offsetHeight || window.innerHeight;
@@ -585,6 +665,16 @@ function setupBidirectionalSnap(pinned) {
 
         if (q <= SNAP_UP_AT) {
           snapAboutToHero(pinned);
+        }
+      }
+
+      if (snapState === "projects" && dir === "up") {
+        const projectsTopY = projects.getBoundingClientRect().top + window.scrollY;
+        const projectsH = projects.offsetHeight || window.innerHeight;
+        const q = (window.scrollY - projectsTopY) / projectsH;
+
+        if (q <= SNAP_UP_AT) {
+          snapHeroToAbout(pinned);
         }
       }
     },
@@ -629,6 +719,38 @@ function refreshResponsiveLayout() {
 
   if (snapState === "about") {
     dockIntoAbout(pinnedHome);
+    return;
+  }
+
+  if (snapState === "projects") {
+    const projectsFrame = document.querySelector(".projects-frame");
+    if (!projectsFrame) return;
+
+    const r = projectsFrame.getBoundingClientRect();
+
+    const targets = {
+      tl: { left: r.left, top: r.top },
+      tr: { left: r.right, top: r.top },
+      bl: { left: r.left, top: r.bottom },
+      br: { left: r.right, top: r.bottom },
+    };
+
+    Object.entries(targets).forEach(([k, pos]) => {
+      const el = pinnedHome[k];
+      if (!el) return;
+
+      gsap.set(el, {
+        position: "fixed",
+        left: pos.left,
+        top: pos.top,
+        x: 0,
+        y: 0,
+        margin: 0,
+        zIndex: PLUS_Z,
+        opacity: 1,
+      });
+    });
+
     return;
   }
 
