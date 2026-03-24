@@ -3,7 +3,6 @@ import ScrollToPlugin from "https://esm.sh/gsap@3.12.2/ScrollToPlugin";
 gsap.registerPlugin(ScrollToPlugin);
 // ✅ scroll helper (werkt met plugin OF zonder)
 function scrollToY(y, duration = 0.9) {
-  // if ScrollToPlugin actually registered, use it
   if (gsap.plugins && gsap.plugins.ScrollToPlugin) {
     return gsap.to(window, {
       scrollTo: { y, autoKill: true },
@@ -12,7 +11,6 @@ function scrollToY(y, duration = 0.9) {
     });
   }
 
-  // fallback (geen plugin nodig)
   const start = window.scrollY;
   const delta = y - start;
   const state = { t: 0 };
@@ -172,18 +170,17 @@ function playIntro() {
   const printState = { t: 0 };
 
   const tl = gsap.timeline({
-    onComplete: () => {
-      gsap.set(logoPrintFxEl, { opacity: 0 });
-      gsap.set(logoMountEl, { opacity: 1 });
+  onComplete: () => {
+  gsap.set(logoPrintFxEl, { opacity: 0 });
+  gsap.set(logoMountEl, { opacity: 1 });
 
-      lockScroll(false);
-      // document.body.classList.remove("is-intro");
+  lockScroll(false);
 
-      requestAnimationFrame(() => {
-        pinnedHome = pinHomePluses();
-        setupBidirectionalSnap(pinnedHome);
-      });
-    },
+  requestAnimationFrame(() => {
+    pinnedHome = pinHomePluses();
+    setupBidirectionalSnap(pinnedHome);
+  });
+},
   });
 
   tl.to(
@@ -403,9 +400,17 @@ function snapHeroToAbout(pinned) {
 
   snapBusy = true;
 
-  const startY = window.scrollY;
- const endY = about.offsetTop - getHeaderOffset();
-  const dy = endY - startY;
+ const startY = window.scrollY;
+
+  let endY;
+
+  if (mobileMq.matches) {
+    endY = about.offsetTop - getHeaderOffset();
+  } else {
+    endY = about.offsetTop;
+  }
+
+const dy = endY - startY;
   const D = 0.9;
 
   const tl = gsap.timeline({
@@ -492,7 +497,48 @@ function snapAboutToHero(pinned) {
     );
   });
 }
+function bindScrollTriggers(pinned) {
+  const triggers = document.querySelectorAll(".hero-scroll, .about-scroll");
 
+  triggers.forEach((trigger) => {
+    if (!trigger || trigger.dataset.bound === "1") return;
+
+    trigger.dataset.bound = "1";
+
+    trigger.addEventListener("click", (e) => {
+      const href = trigger.getAttribute("href");
+      if (!href) return;
+
+      // gewone link laten werken
+      if (!href.startsWith("#")) return;
+
+      e.preventDefault();
+      if (snapBusy) return;
+
+      const target = document.querySelector(href);
+      if (!target) return;
+
+      // MOBILE: enkel smooth scroll, geen snap
+      if (mobileMq.matches) {
+        const y = target.offsetTop - getHeaderOffset();
+        scrollToY(y, 0.9);
+        return;
+      }
+
+      // DESKTOP: bestaand snap gedrag behouden
+      if (target.id === "about") {
+        if (snapState === "hero") {
+          snapHeroToAbout(pinned);
+        } else {
+          scrollToY(target.offsetTop, 0.9);
+        }
+        return;
+      }
+
+      scrollToY(target.offsetTop, 0.9);
+    });
+  });
+}
 function setupBidirectionalSnap(pinned) {
   lastScrollY = window.scrollY;
 
@@ -500,21 +546,18 @@ function setupBidirectionalSnap(pinned) {
   const about = document.getElementById("about");
   if (!hero || !about) return;
 
-  const scrollBtn = document.querySelector(".hero-scroll");
-  if (scrollBtn && scrollBtn.dataset.bound !== "1") {
-    scrollBtn.dataset.bound = "1";
+  bindScrollTriggers(pinned);
 
-    scrollBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-
-      if (snapBusy) return;
-      if (snapState === "hero") {
-        snapHeroToAbout(pinned);
-      }
-    });
+  // MOBILE:
+  // plusjes blijven fixed staan
+  // geen snap animaties meer
+  if (mobileMq.matches) {
+    snapState = "hero";
+    snapBusy = false;
+    return;
   }
 
-  const SNAP_UP_AT = mobileMq.matches ? 0.22 : 0.15;
+  const SNAP_UP_AT = 0.15;
 
   window.addEventListener(
     "scroll",
@@ -575,23 +618,7 @@ function pinHomePluses() {
 
   return map;
 }
-async function boot() {
-  try {
-    await brandLogoEl?.decode();
-  } catch {}
-
-  if (document.fonts?.ready) {
-    try {
-      await document.fonts.ready;
-    } catch {}
-  }
-
-  syncLogoUrl();
-  syncMountSize();
-  syncPrintFxSize();
-bindMobileModules();
-  requestAnimationFrame(() => requestAnimationFrame(playIntro));
-}
+const mobileMq = window.matchMedia("(max-width: 900px)");
 
 function refreshResponsiveLayout() {
   syncLogoUrl();
@@ -609,14 +636,14 @@ function refreshResponsiveLayout() {
   if (!heroFrame) return;
 
   const r = heroFrame.getBoundingClientRect();
-const headerH = mobileMq.matches ? getHeaderH() : 0;
+  const headerH = mobileMq.matches ? getHeaderH() : 0;
 
-const targets = {
-  tl: { left: r.left, top: Math.max(r.top, headerH) },
-  tr: { left: r.right, top: Math.max(r.top, headerH) },
-  bl: { left: r.left, top: r.bottom },
-  br: { left: r.right, top: r.bottom },
-};
+  const targets = {
+    tl: { left: r.left, top: Math.max(r.top, headerH) },
+    tr: { left: r.right, top: Math.max(r.top, headerH) },
+    bl: { left: r.left, top: r.bottom },
+    br: { left: r.right, top: r.bottom },
+  };
 
   Object.entries(targets).forEach(([k, pos]) => {
     const el = pinnedHome[k];
@@ -636,37 +663,41 @@ const targets = {
 }
 
 window.addEventListener("resize", refreshResponsiveLayout);
-const mobileMq = window.matchMedia("(max-width: 900px)");
+
 function bindMobileModules() {
-  const modulesWrap = document.querySelector(".about-modules");
-
   document.querySelectorAll(".module").forEach((module) => {
-    const head = module.querySelector(".module-head");
-    const strip = module.querySelector(".module-strip");
+    if (module.dataset.bound === "1") return;
+    module.dataset.bound = "1";
 
-    [head, strip].forEach((trigger) => {
-      if (!trigger || trigger.dataset.bound === "1") return;
+    module.addEventListener("click", (e) => {
+      if (!mobileMq.matches) return;
 
-      trigger.dataset.bound = "1";
-      trigger.addEventListener("click", (e) => {
-        if (!mobileMq.matches) return;
+      const clickedHead = e.target.closest(".module-head");
+      const clickedStrip = e.target.closest(".module-strip");
+      const clickedBody = e.target.closest(".module-body");
 
+      const isOpen = module.classList.contains("is-open");
+
+      if (isOpen) {
+        // open module mag enkel sluiten via kop of onderste balk
+        if (!clickedHead && !clickedStrip) return;
         e.preventDefault();
         e.stopPropagation();
+        module.classList.remove("is-open");
+        return;
+      }
 
-        const wasOpen = module.classList.contains("is-open");
+      // gesloten module mag openen als je op kop, balk of leeg vlak van die module klikt
+      if (clickedBody) return;
 
-        document.querySelectorAll(".module.is-open").forEach((m) => {
-          m.classList.remove("is-open");
-        });
+      e.preventDefault();
+      e.stopPropagation();
 
-        modulesWrap?.classList.remove("has-open");
-
-        if (!wasOpen) {
-          module.classList.add("is-open");
-          modulesWrap?.classList.add("has-open");
-        }
+      document.querySelectorAll(".module.is-open").forEach((m) => {
+        if (m !== module) m.classList.remove("is-open");
       });
+
+      module.classList.add("is-open");
     });
   });
 }
@@ -676,6 +707,7 @@ function getHeaderH() {
   const val = parseFloat(raw);
   return Number.isFinite(val) ? val : 0;
 }
+
 function getHeaderOffset() {
   const styles = getComputedStyle(document.documentElement);
   return (
@@ -684,4 +716,110 @@ function getHeaderOffset() {
     0
   );
 }
+
+function bindMobileMenu() {
+  const menuToggle = document.getElementById("menuToggle");
+  const mobileMenu = document.getElementById("mobileMenu");
+  const mobileMenuBackdrop = document.getElementById("mobileMenuBackdrop");
+  const mobileMenuLinks = Array.from(document.querySelectorAll("#mobileMenu a"));
+
+  if (!menuToggle || !mobileMenu || !mobileMenuBackdrop) return;
+
+  const openMenu = () => {
+    document.body.classList.add("menu-open");
+    menuToggle.classList.add("is-open");
+    menuToggle.setAttribute("aria-expanded", "true");
+    mobileMenu.setAttribute("aria-hidden", "false");
+    mobileMenuBackdrop.setAttribute("aria-hidden", "false");
+  };
+
+  const closeMenu = () => {
+    document.body.classList.remove("menu-open");
+    menuToggle.classList.remove("is-open");
+    menuToggle.setAttribute("aria-expanded", "false");
+    mobileMenu.setAttribute("aria-hidden", "true");
+    mobileMenuBackdrop.setAttribute("aria-hidden", "true");
+  };
+
+  const toggleMenu = () => {
+    if (!mobileMq.matches) return;
+
+    if (document.body.classList.contains("menu-open")) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  };
+
+  if (menuToggle.dataset.bound !== "1") {
+    menuToggle.dataset.bound = "1";
+    menuToggle.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleMenu();
+    });
+  }
+
+  if (mobileMenuBackdrop.dataset.bound !== "1") {
+    mobileMenuBackdrop.dataset.bound = "1";
+    mobileMenuBackdrop.addEventListener("click", closeMenu);
+  }
+
+  mobileMenuLinks.forEach((link) => {
+    if (link.dataset.bound === "1") return;
+    link.dataset.bound = "1";
+    link.addEventListener("click", closeMenu);
+  });
+
+  if (!document.documentElement.dataset.mobileMenuEscBound) {
+    document.documentElement.dataset.mobileMenuEscBound = "1";
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && document.body.classList.contains("menu-open")) {
+        closeMenu();
+      }
+    });
+  }
+
+  if (!document.documentElement.dataset.mobileMenuMqBound) {
+    document.documentElement.dataset.mobileMenuMqBound = "1";
+
+    const handleMqChange = (e) => {
+      if (!e.matches) {
+        closeMenu();
+      }
+    };
+
+    if (typeof mobileMq.addEventListener === "function") {
+      mobileMq.addEventListener("change", handleMqChange);
+    } else if (typeof mobileMq.addListener === "function") {
+      mobileMq.addListener(handleMqChange);
+    }
+  }
+}
+
+async function boot() {
+  try {
+    await brandLogoEl?.decode();
+  } catch {}
+
+  if (document.fonts?.ready) {
+    try {
+      await document.fonts.ready;
+    } catch {}
+  }
+
+  syncLogoUrl();
+  syncMountSize();
+  syncPrintFxSize();
+
+  bindMobileModules();
+  bindMobileMenu();
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      playIntro();
+    });
+  });
+}
+
 boot();
