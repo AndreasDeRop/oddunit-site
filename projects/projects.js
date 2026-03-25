@@ -5,10 +5,14 @@ import gsap from "https://esm.sh/gsap@3.12.2";
 import ScrollTrigger from "https://esm.sh/gsap@3.12.2/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
+
 ScrollTrigger.config({
   ignoreMobileResize: true,
 });
+
 const BREAKPOINT = 900;
+const SWAP_AT = 0.48;
+const TURNS_TOTAL = 2;
 
 const DROPS = [
   {
@@ -88,27 +92,37 @@ function initProjectsScene() {
 
   let toy1 = null;
   let toy2 = null;
+  let activeIdx = 0;
   let baseCamZ = 3;
   let heightHint = 1.8;
 
   let typingTween = null;
   let tickerTween = null;
   let mainScrollST = null;
-  let sceneVisibilityST = null;
 
-  let rafId = 0;
-  let sceneActive = false;
+  let renderQueued = false;
   let baseTickerNodes = [];
-
+  let resizeTimer = 0;
   const typedOnce = [false, false];
 
   function isMobile() {
     return window.matchMedia(`(max-width: ${BREAKPOINT}px)`).matches;
   }
 
-  function updateDots(activeIdx) {
+  function requestRender() {
+    if (renderQueued) return;
+
+    renderQueued = true;
+
+    requestAnimationFrame(() => {
+      renderQueued = false;
+      renderer.render(scene, camera);
+    });
+  }
+
+  function updateDots(idx) {
     dotEls.forEach((dot, i) => {
-      dot.classList.toggle("is-active", i === activeIdx);
+      dot.classList.toggle("is-active", i === idx);
     });
   }
 
@@ -185,7 +199,6 @@ function initProjectsScene() {
 
     model.position.x -= center.x;
     model.position.z -= center.z;
-
     groundY(model);
   }
 
@@ -247,39 +260,31 @@ function initProjectsScene() {
     camera.updateProjectionMatrix();
   }
 
-  function alignRootToCanvasCell() {
-    root.position.x = 0;
-  }
-
   function getLookY() {
     return heightHint * (isMobile() ? 0.42 : 0.55);
   }
 
   function updateLayout() {
-  renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio, isMobile() ? 1 : 1.5)
-  );
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile() ? 1 : 1.5));
+    resizeRenderer();
 
-  resizeRenderer();
+    if (!toy1 || !toy2) {
+      requestRender();
+      return;
+    }
 
-  if (!toy1 || !toy2) return;
+    root.scale.setScalar(isMobile() ? 0.72 : 0.84);
+    camera.position.z = isMobile() ? baseCamZ * 1.18 : baseCamZ;
+    camera.position.y = isMobile() ? heightHint * 0.08 : heightHint * 0.55;
+    camera.lookAt(0, getLookY(), 0);
 
-  root.scale.setScalar(isMobile() ? 0.72 : 0.84);
-  alignRootToCanvasCell();
-
-  camera.position.z = isMobile() ? baseCamZ * 1.18 : baseCamZ;
-  camera.position.y = isMobile() ? heightHint * 0.08 : heightHint * 0.55;
-  camera.lookAt(0, getLookY(), 0);
-
-  renderOnce();
-}
+    requestRender();
+  }
 
   function snapshotTickerBase() {
     if (!tickerInner) return;
 
-    baseTickerNodes = Array.from(tickerInner.children).map((node) =>
-      node.cloneNode(true),
-    );
+    baseTickerNodes = Array.from(tickerInner.children).map((node) => node.cloneNode(true));
   }
 
   function rebuildTicker() {
@@ -289,11 +294,12 @@ function initProjectsScene() {
         tickerTween = null;
       }
 
-      gsap.set(tickerTrack, { clearProps: "transform" });
-
-      tickerTrack
-        ?.querySelectorAll(".projects-ticker__clone")
-        .forEach((node) => node.remove());
+      if (tickerTrack) {
+        gsap.set(tickerTrack, { clearProps: "transform" });
+        tickerTrack
+          .querySelectorAll(".projects-ticker__clone")
+          .forEach((node) => node.remove());
+      }
 
       return;
     }
@@ -318,6 +324,7 @@ function initProjectsScene() {
     });
 
     let guard = 0;
+
     while (
       tickerInner.getBoundingClientRect().width <
         tickerTrack.getBoundingClientRect().width + 300 &&
@@ -348,61 +355,36 @@ function initProjectsScene() {
     });
   }
 
-  function renderOnce() {
-    renderer.render(scene, camera);
-  }
+  function applyProgress(progress) {
+    if (!toy1 || !toy2) return;
 
-  function tick() {
-    if (!sceneActive) return;
-    renderer.render(scene, camera);
-    rafId = requestAnimationFrame(tick);
-  }
+    const idx = progress >= SWAP_AT ? 1 : 0;
 
-  function startScene() {
-    if (sceneActive) return;
-    sceneActive = true;
-    tick();
-  }
+    root.rotation.y = progress * Math.PI * 2 * TURNS_TOTAL;
 
-  function stopScene() {
-    sceneActive = false;
+    if (idx !== activeIdx) {
+      activeIdx = idx;
+      showToy(idx);
+      setModelOpaque(idx === 0 ? toy1 : toy2);
+      updateDots(idx);
 
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = 0;
+      if (!typedOnce[idx]) {
+        typedOnce[idx] = true;
+        renderCopy(idx, true);
+      } else {
+        renderCopy(idx, false);
+      }
     }
-  }
 
-function setupSceneVisibilityTrigger() {
-  if (sceneVisibilityST) {
-    sceneVisibilityST.kill();
-    sceneVisibilityST = null;
+    camera.lookAt(0, getLookY(), 0);
+    requestRender();
   }
-
-  if (isMobile()) {
-    startScene();
-    return;
-  }
-
-  sceneVisibilityST = ScrollTrigger.create({
-    trigger: scrollSpace,
-    start: "top bottom",
-    end: "bottom top",
-    onEnter: startScene,
-    onEnterBack: startScene,
-    onLeave: stopScene,
-    onLeaveBack: stopScene,
-  });
-}
 
   function setupMainScroll() {
-    if (mainScrollST) mainScrollST.kill();
-
-    const SWAP_AT = 0.48;
-    const TURNS_TOTAL = 2;
-
-    let activeIdx = -1;
-    let initialized = false;
+    if (mainScrollST) {
+      mainScrollST.kill();
+      mainScrollST = null;
+    }
 
     mainScrollST = ScrollTrigger.create({
       trigger: scrollSpace,
@@ -410,100 +392,76 @@ function setupSceneVisibilityTrigger() {
       end: "bottom bottom",
       scrub: 1,
       onUpdate: (self) => {
-        if (!toy1 || !toy2) return;
-
-        const p = self.progress;
-        const idx = p >= SWAP_AT ? 1 : 0;
-
-        root.rotation.y = p * Math.PI * 2 * TURNS_TOTAL;
-
-        if (!initialized) {
-          initialized = true;
-          activeIdx = idx;
-
-          showToy(idx);
-          setModelOpaque(idx === 0 ? toy1 : toy2);
-          renderCopy(idx, false);
-          updateDots(idx);
-          camera.lookAt(0, getLookY(), 0);
-          renderOnce();
-          return;
-        }
-
-        if (idx !== activeIdx) {
-          activeIdx = idx;
-          showToy(idx);
-          setModelOpaque(idx === 0 ? toy1 : toy2);
-          updateDots(idx);
-
-          if (!typedOnce[idx]) {
-            typedOnce[idx] = true;
-            renderCopy(idx, true);
-          } else {
-            renderCopy(idx, false);
-          }
-        }
-
-        camera.lookAt(0, getLookY(), 0);
-        renderOnce();
+        applyProgress(self.progress);
       },
     });
   }
 
-  Promise.all([
-    loader.loadAsync(DROPS[0].model),
-    loader.loadAsync(DROPS[1].model),
-  ]).then(([g1, g2]) => {
-    toy1 = g1.scene;
-    toy2 = g2.scene;
+  function scheduleRefresh(delay = 140) {
+    clearTimeout(resizeTimer);
 
-    cloneMaterials(toy1);
-    cloneMaterials(toy2);
+    resizeTimer = window.setTimeout(() => {
+      updateLayout();
+      rebuildTicker();
+      ScrollTrigger.refresh();
+    }, delay);
+  }
 
-    prepToy(toy1);
-    prepToy(toy2);
+  const resizeObserver =
+    typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(() => {
+          scheduleRefresh(100);
+        })
+      : null;
 
-    const h1 = getHeight(toy1);
-    const h2 = getHeight(toy2);
-    heightHint = h1 > 0 ? h1 : 1.8;
+  if (resizeObserver) {
+    resizeObserver.observe(canvasCell);
+  }
 
-    if (h1 > 0 && h2 > 0) {
-      toy2.scale.multiplyScalar(h1 / h2);
-      groundY(toy2);
-    }
+  window.addEventListener("resize", () => scheduleRefresh(120));
+  window.addEventListener("orientationchange", () => scheduleRefresh(220));
 
-    root.add(toy1);
-    root.add(toy2);
+  Promise.all([loader.loadAsync(DROPS[0].model), loader.loadAsync(DROPS[1].model)]).then(
+    ([g1, g2]) => {
+      toy1 = g1.scene;
+      toy2 = g2.scene;
 
-    fitCameraTo(root, 1.35, heightHint);
-    baseCamZ = camera.position.z;
+      cloneMaterials(toy1);
+      cloneMaterials(toy2);
 
-    showToy(0);
-    setModelOpaque(toy1);
-    setModelOpaque(toy2);
-    renderCopy(0, false);
-    updateDots(0);
+      prepToy(toy1);
+      prepToy(toy2);
 
-    typedOnce[0] = true;
+      const h1 = getHeight(toy1);
+      const h2 = getHeight(toy2);
 
-    updateLayout();
-    setupMainScroll();
-    setupSceneVisibilityTrigger();
-    rebuildTicker();
-    renderOnce();
-    ScrollTrigger.refresh();
-  });
+      heightHint = h1 > 0 ? h1 : 1.8;
 
-  window.addEventListener("resize", () => {
-    updateLayout();
-    rebuildTicker();
-    ScrollTrigger.refresh();
-  });
-  window.addEventListener("orientationchange", () => {
-  setTimeout(() => {
-    updateLayout();
-    rebuildTicker();
-    ScrollTrigger.refresh();
-  }, 250);
-});
+      if (h1 > 0 && h2 > 0) {
+        toy2.scale.multiplyScalar(h1 / h2);
+        groundY(toy2);
+      }
+
+      root.add(toy1);
+      root.add(toy2);
+
+      fitCameraTo(root, 1.35, heightHint);
+      baseCamZ = camera.position.z;
+
+      activeIdx = 0;
+      showToy(0);
+      setModelOpaque(toy1);
+      setModelOpaque(toy2);
+
+      renderCopy(0, false);
+      updateDots(0);
+      typedOnce[0] = true;
+
+      updateLayout();
+      setupMainScroll();
+      rebuildTicker();
+      requestRender();
+      ScrollTrigger.refresh();
+    },
+  );
 }
