@@ -5,7 +5,9 @@ import gsap from "https://esm.sh/gsap@3.12.2";
 import ScrollTrigger from "https://esm.sh/gsap@3.12.2/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
-
+ScrollTrigger.config({
+  ignoreMobileResize: true,
+});
 const BREAKPOINT = 900;
 
 const DROPS = [
@@ -52,9 +54,10 @@ function initProjectsScene() {
     canvas,
     antialias: true,
     alpha: true,
+    powerPreference: "high-performance",
   });
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.85;
@@ -87,9 +90,14 @@ function initProjectsScene() {
   let toy2 = null;
   let baseCamZ = 3;
   let heightHint = 1.8;
+
   let typingTween = null;
-  let mainScrollST = null;
   let tickerTween = null;
+  let mainScrollST = null;
+  let sceneVisibilityST = null;
+
+  let rafId = 0;
+  let sceneActive = false;
   let baseTickerNodes = [];
 
   const typedOnce = [false, false];
@@ -118,7 +126,10 @@ function initProjectsScene() {
   }
 
   function typewriteTo(title, desc, duration = 0.55) {
-    if (typingTween) typingTween.kill();
+    if (typingTween) {
+      typingTween.kill();
+      typingTween = null;
+    }
 
     titleEl.textContent = "";
     descEl.textContent = "";
@@ -135,6 +146,9 @@ function initProjectsScene() {
 
         titleEl.textContent = title.slice(0, titleCount);
         descEl.textContent = desc.slice(0, descCount);
+      },
+      onComplete: () => {
+        typingTween = null;
       },
     });
   }
@@ -153,6 +167,7 @@ function initProjectsScene() {
   function cloneMaterials(model) {
     model.traverse((child) => {
       if (!child.isMesh) return;
+
       child.material = Array.isArray(child.material)
         ? child.material.map((m) => m.clone())
         : child.material.clone();
@@ -232,25 +247,153 @@ function initProjectsScene() {
     camera.updateProjectionMatrix();
   }
 
-function alignRootToCanvasCell() {
-  root.position.x = 0;
-}
+  function alignRootToCanvasCell() {
+    root.position.x = 0;
+  }
+
   function getLookY() {
     return heightHint * (isMobile() ? 0.42 : 0.55);
   }
 
   function updateLayout() {
-    resizeRenderer();
+  renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio, isMobile() ? 1 : 1.5)
+  );
 
-    if (!toy1 || !toy2) return;
+  resizeRenderer();
 
-    root.scale.setScalar(isMobile() ? 0.72 : 0.84);
-    alignRootToCanvasCell();
+  if (!toy1 || !toy2) return;
 
-    camera.position.z = isMobile() ? baseCamZ * 1.18 : baseCamZ;
-    camera.position.y = isMobile() ? heightHint * 0.08 : heightHint * 0.55;
-    camera.lookAt(0, getLookY(), 0);
+  root.scale.setScalar(isMobile() ? 0.72 : 0.84);
+  alignRootToCanvasCell();
+
+  camera.position.z = isMobile() ? baseCamZ * 1.18 : baseCamZ;
+  camera.position.y = isMobile() ? heightHint * 0.08 : heightHint * 0.55;
+  camera.lookAt(0, getLookY(), 0);
+
+  renderOnce();
+}
+
+  function snapshotTickerBase() {
+    if (!tickerInner) return;
+
+    baseTickerNodes = Array.from(tickerInner.children).map((node) =>
+      node.cloneNode(true),
+    );
   }
+
+  function rebuildTicker() {
+    if (!tickerTrack || !tickerInner || isMobile()) {
+      if (tickerTween) {
+        tickerTween.kill();
+        tickerTween = null;
+      }
+
+      gsap.set(tickerTrack, { clearProps: "transform" });
+
+      tickerTrack
+        ?.querySelectorAll(".projects-ticker__clone")
+        .forEach((node) => node.remove());
+
+      return;
+    }
+
+    if (baseTickerNodes.length === 0) snapshotTickerBase();
+    if (baseTickerNodes.length === 0) return;
+
+    if (tickerTween) {
+      tickerTween.kill();
+      tickerTween = null;
+    }
+
+    gsap.set(tickerTrack, { clearProps: "transform" });
+
+    tickerTrack.querySelectorAll(".projects-ticker__clone").forEach((node) => {
+      node.remove();
+    });
+
+    tickerInner.innerHTML = "";
+    baseTickerNodes.forEach((node) => {
+      tickerInner.appendChild(node.cloneNode(true));
+    });
+
+    let guard = 0;
+    while (
+      tickerInner.getBoundingClientRect().width <
+        tickerTrack.getBoundingClientRect().width + 300 &&
+      guard < 50
+    ) {
+      baseTickerNodes.forEach((node) => {
+        tickerInner.appendChild(node.cloneNode(true));
+      });
+      guard += 1;
+    }
+
+    const groupWidth = tickerInner.getBoundingClientRect().width;
+    if (groupWidth <= 0) return;
+
+    const clone = tickerInner.cloneNode(true);
+    clone.classList.add("projects-ticker__clone");
+    clone.removeAttribute("id");
+    clone.setAttribute("aria-hidden", "true");
+    tickerTrack.appendChild(clone);
+
+    gsap.set(tickerTrack, { x: 0 });
+
+    tickerTween = gsap.to(tickerTrack, {
+      x: -groupWidth,
+      duration: groupWidth / 35,
+      ease: "none",
+      repeat: -1,
+    });
+  }
+
+  function renderOnce() {
+    renderer.render(scene, camera);
+  }
+
+  function tick() {
+    if (!sceneActive) return;
+    renderer.render(scene, camera);
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function startScene() {
+    if (sceneActive) return;
+    sceneActive = true;
+    tick();
+  }
+
+  function stopScene() {
+    sceneActive = false;
+
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+  }
+
+function setupSceneVisibilityTrigger() {
+  if (sceneVisibilityST) {
+    sceneVisibilityST.kill();
+    sceneVisibilityST = null;
+  }
+
+  if (isMobile()) {
+    startScene();
+    return;
+  }
+
+  sceneVisibilityST = ScrollTrigger.create({
+    trigger: scrollSpace,
+    start: "top bottom",
+    end: "bottom top",
+    onEnter: startScene,
+    onEnterBack: startScene,
+    onLeave: stopScene,
+    onLeaveBack: stopScene,
+  });
+}
 
   function setupMainScroll() {
     if (mainScrollST) mainScrollST.kill();
@@ -267,6 +410,8 @@ function alignRootToCanvasCell() {
       end: "bottom bottom",
       scrub: 1,
       onUpdate: (self) => {
+        if (!toy1 || !toy2) return;
+
         const p = self.progress;
         const idx = p >= SWAP_AT ? 1 : 0;
 
@@ -281,6 +426,7 @@ function alignRootToCanvasCell() {
           renderCopy(idx, false);
           updateDots(idx);
           camera.lookAt(0, getLookY(), 0);
+          renderOnce();
           return;
         }
 
@@ -299,65 +445,10 @@ function alignRootToCanvasCell() {
         }
 
         camera.lookAt(0, getLookY(), 0);
+        renderOnce();
       },
     });
   }
-
-  function snapshotTickerBase() {
-    if (!tickerInner) return;
-    baseTickerNodes = Array.from(tickerInner.children).map((node) =>
-      node.cloneNode(true),
-    );
-  }
-
-function rebuildTicker() {
-  if (!tickerTrack || !tickerInner || isMobile()) {
-    if (tickerTween) tickerTween.kill();
-    return;
-  }
-
-  if (baseTickerNodes.length === 0) snapshotTickerBase();
-  if (baseTickerNodes.length === 0) return;
-
-  if (tickerTween) tickerTween.kill();
-
-tickerTrack.querySelectorAll(".projects-ticker__clone").forEach((node) => {
-  node.remove();
-});
-  tickerInner.innerHTML = "";
-  baseTickerNodes.forEach((node) => {
-    tickerInner.appendChild(node.cloneNode(true));
-  });
-
-  let guard = 0;
-  while (
-    tickerInner.getBoundingClientRect().width <
-      tickerTrack.getBoundingClientRect().width + 300 &&
-    guard < 50
-  ) {
-    baseTickerNodes.forEach((node) => {
-      tickerInner.appendChild(node.cloneNode(true));
-    });
-    guard += 1;
-  }
-
-  const groupWidth = tickerInner.getBoundingClientRect().width;
-  if (groupWidth <= 0) return;
-
-  const clone = tickerInner.cloneNode(true);
-  clone.classList.add("projects-ticker__clone");
-  clone.removeAttribute("id");
-  clone.setAttribute("aria-hidden", "true");
-  tickerTrack.appendChild(clone);
-
-  gsap.set(tickerTrack, { x: 0 });
-  tickerTween = gsap.to(tickerTrack, {
-    x: -groupWidth,
-    duration: groupWidth / 35,
-    ease: "none",
-    repeat: -1,
-  });
-}
 
   Promise.all([
     loader.loadAsync(DROPS[0].model),
@@ -397,7 +488,9 @@ tickerTrack.querySelectorAll(".projects-ticker__clone").forEach((node) => {
 
     updateLayout();
     setupMainScroll();
+    setupSceneVisibilityTrigger();
     rebuildTicker();
+    renderOnce();
     ScrollTrigger.refresh();
   });
 
@@ -406,12 +499,11 @@ tickerTrack.querySelectorAll(".projects-ticker__clone").forEach((node) => {
     rebuildTicker();
     ScrollTrigger.refresh();
   });
-
-  function animate() {
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
-  }
-
-  updateLayout();
-  animate();
+  window.addEventListener("orientationchange", () => {
+  setTimeout(() => {
+    updateLayout();
+    rebuildTicker();
+    ScrollTrigger.refresh();
+  }, 250);
+});
 }

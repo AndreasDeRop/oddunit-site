@@ -283,7 +283,43 @@ function undockFromAboutToFixed(pinned) {
     ensureFixedFromRect(el);
   });
 }
+function dockIntoFrame(pinned, frameEl) {
+  if (!pinned || !frameEl) return;
 
+  const r = frameEl.getBoundingClientRect();
+  const headerH = mobileMq.matches ? getHeaderH() : 0;
+
+  const targets = {
+    tl: { left: r.left, top: Math.max(r.top, headerH) },
+    tr: { left: r.right, top: Math.max(r.top, headerH) },
+    bl: { left: r.left, top: r.bottom },
+    br: { left: r.right, top: r.bottom },
+  };
+
+  ["tl", "tr", "bl", "br"].forEach((k) => {
+    const el = pinned[k];
+    if (!el) return;
+
+    document.body.appendChild(el);
+
+    el.classList.remove("about-plus", "ap-tl", "ap-tr", "ap-bl", "ap-br");
+
+    gsap.set(el, {
+      position: "fixed",
+      left: targets[k].left,
+      top: targets[k].top,
+      x: 0,
+      y: 0,
+      margin: 0,
+      zIndex: PLUS_Z,
+      opacity: 1,
+    });
+
+    el.style.right = "";
+    el.style.bottom = "";
+    el.style.visibility = "";
+  });
+}
 function dockIntoAbout(pinned) {
   const aboutTitle = document.querySelector(".about-title");
   if (!aboutTitle) return;
@@ -474,6 +510,7 @@ function snapAboutToHero(pinned) {
     onComplete: () => {
       snapBusy = false;
       snapState = "hero";
+      dockIntoFrame(pinned, heroFrame);
       lastScrollY = window.scrollY;
     },
   });
@@ -509,7 +546,6 @@ function snapAboutToProjects(pinned) {
 
   snapBusy = true;
 
-  // plusjes zitten in about gedockt, dus eerst losmaken en fixed maken
   undockFromAboutToFixed(pinned);
 
   const startY = window.scrollY;
@@ -525,6 +561,7 @@ function snapAboutToProjects(pinned) {
     onComplete: () => {
       snapBusy = false;
       snapState = "projects";
+      dockIntoFrame(pinned, projectsFrame);
       lastScrollY = window.scrollY;
     },
   });
@@ -551,7 +588,53 @@ function snapAboutToProjects(pinned) {
     );
   });
 }
+function snapProjectsToAbout(pinned) {
+  if (snapBusy) return;
 
+  const about = document.getElementById("about");
+  const aboutTitle = document.querySelector(".about-title");
+  const projects = document.getElementById("projects");
+  if (!about || !aboutTitle || !projects || !pinned) return;
+
+  snapBusy = true;
+
+  const startY = window.scrollY;
+  const endY = about.offsetTop;
+  const dy = endY - startY;
+  const D = 0.9;
+
+  const tl = gsap.timeline({
+    onComplete: () => {
+      snapBusy = false;
+      snapState = "about";
+      dockIntoAbout(pinned);
+      lastScrollY = window.scrollY;
+    },
+  });
+
+  tl.add(scrollToY(endY, D), 0);
+
+  ["tl", "tr", "bl", "br"].forEach((k) => {
+    const el = pinned[k];
+    if (!el) return;
+
+    const startRect = ensureFixedFromRect(el);
+    const targetNow = measureAboutDockRectNow(el, k, aboutTitle, startRect);
+    const targetEnd = rectAfterScroll(targetNow, dy);
+
+    tl.to(
+      el,
+      {
+        x: targetEnd.left - startRect.left,
+        y: targetEnd.top - startRect.top,
+        duration: D,
+        ease: "power2.inOut",
+        zIndex: PLUS_Z,
+      },
+      0
+    );
+  });
+}
 function bindScrollTriggers(pinned) {
   const triggers = document.querySelectorAll(".hero-scroll, .about-scroll");
 
@@ -564,7 +647,6 @@ function bindScrollTriggers(pinned) {
       const href = trigger.getAttribute("href");
       if (!href) return;
 
-      // gewone link laten werken
       if (!href.startsWith("#")) return;
 
       e.preventDefault();
@@ -573,6 +655,7 @@ function bindScrollTriggers(pinned) {
       const target = document.querySelector(href);
       if (!target) return;
 
+      // MOBILE: geen snap, alleen scroll
       if (mobileMq.matches) {
         const y = target.offsetTop - getHeaderOffset();
         scrollToY(y, 0.9);
@@ -580,26 +663,27 @@ function bindScrollTriggers(pinned) {
       }
 
       if (target.id === "about") {
-        if (snapState === "hero" || snapState === "projects") {
+        if (snapState === "hero") {
           snapHeroToAbout(pinned);
-        } else {
-          scrollToY(target.offsetTop, 0.9);
+          return;
         }
+
+        if (snapState === "projects") {
+          snapProjectsToAbout(pinned);
+          return;
+        }
+
+        scrollToY(target.offsetTop, 0.9);
         return;
       }
 
       if (target.id === "projects") {
         if (snapState === "about") {
           snapAboutToProjects(pinned);
-        } else if (snapState === "hero") {
-          snapHeroToAbout(pinned, {
-            onComplete: () => {
-              requestAnimationFrame(() => snapAboutToProjects(pinned));
-            },
-          });
-        } else {
-          scrollToY(target.offsetTop, 0.9);
+          return;
         }
+
+        scrollToY(target.offsetTop, 0.9);
         return;
       }
 
@@ -613,13 +697,14 @@ function setupBidirectionalSnap(pinned) {
   const hero = document.getElementById("hero");
   const about = document.getElementById("about");
   const projects = document.getElementById("projects");
+
   if (!hero || !about || !projects) return;
 
   bindScrollTriggers(pinned);
 
   // MOBILE:
-  // plusjes blijven fixed staan
-  // geen snap animaties meer
+  // plusjes blijven vanaf na de intro gewoon fixed op hun plek staan
+  // geen snap tussen sections
   if (mobileMq.matches) {
     snapState = "hero";
     snapBusy = false;
@@ -627,7 +712,8 @@ function setupBidirectionalSnap(pinned) {
   }
 
   const SNAP_UP_AT = 0.15;
-  const SNAP_DOWN_AT = 0.12;
+  const SNAP_DOWN_TO_PROJECTS_AT = 0.02;
+  const SNAP_PROJECTS_BACK_AT = 0.06;
 
   window.addEventListener(
     "scroll",
@@ -645,16 +731,7 @@ function setupBidirectionalSnap(pinned) {
 
         if (window.scrollY > 2 && window.scrollY < heroH * 0.95) {
           snapHeroToAbout(pinned);
-        }
-      }
-
-      if (snapState === "about" && dir === "down") {
-        const aboutTopY = about.getBoundingClientRect().top + window.scrollY;
-        const aboutH = about.offsetHeight || window.innerHeight;
-        const q = (window.scrollY - aboutTopY) / aboutH;
-
-        if (q >= SNAP_DOWN_AT) {
-          snapAboutToProjects(pinned);
+          return;
         }
       }
 
@@ -665,6 +742,18 @@ function setupBidirectionalSnap(pinned) {
 
         if (q <= SNAP_UP_AT) {
           snapAboutToHero(pinned);
+          return;
+        }
+      }
+
+      if (snapState === "about" && dir === "down") {
+        const aboutTopY = about.getBoundingClientRect().top + window.scrollY;
+        const aboutH = about.offsetHeight || window.innerHeight;
+        const q = (window.scrollY - aboutTopY) / aboutH;
+
+        if (q >= SNAP_DOWN_TO_PROJECTS_AT) {
+          snapAboutToProjects(pinned);
+          return;
         }
       }
 
@@ -673,8 +762,8 @@ function setupBidirectionalSnap(pinned) {
         const projectsH = projects.offsetHeight || window.innerHeight;
         const q = (window.scrollY - projectsTopY) / projectsH;
 
-        if (q <= SNAP_UP_AT) {
-          snapHeroToAbout(pinned);
+        if (q <= SNAP_PROJECTS_BACK_AT) {
+          snapProjectsToAbout(pinned);
         }
       }
     },
@@ -724,64 +813,16 @@ function refreshResponsiveLayout() {
 
   if (snapState === "projects") {
     const projectsFrame = document.querySelector(".projects-frame");
-    if (!projectsFrame) return;
-
-    const r = projectsFrame.getBoundingClientRect();
-
-    const targets = {
-      tl: { left: r.left, top: r.top },
-      tr: { left: r.right, top: r.top },
-      bl: { left: r.left, top: r.bottom },
-      br: { left: r.right, top: r.bottom },
-    };
-
-    Object.entries(targets).forEach(([k, pos]) => {
-      const el = pinnedHome[k];
-      if (!el) return;
-
-      gsap.set(el, {
-        position: "fixed",
-        left: pos.left,
-        top: pos.top,
-        x: 0,
-        y: 0,
-        margin: 0,
-        zIndex: PLUS_Z,
-        opacity: 1,
-      });
-    });
-
+    if (projectsFrame) {
+      dockIntoFrame(pinnedHome, projectsFrame);
+    }
     return;
   }
 
   const heroFrame = document.querySelector(".hero-frame");
   if (!heroFrame) return;
 
-  const r = heroFrame.getBoundingClientRect();
-  const headerH = mobileMq.matches ? getHeaderH() : 0;
-
-  const targets = {
-    tl: { left: r.left, top: Math.max(r.top, headerH) },
-    tr: { left: r.right, top: Math.max(r.top, headerH) },
-    bl: { left: r.left, top: r.bottom },
-    br: { left: r.right, top: r.bottom },
-  };
-
-  Object.entries(targets).forEach(([k, pos]) => {
-    const el = pinnedHome[k];
-    if (!el) return;
-
-    gsap.set(el, {
-      position: "fixed",
-      left: pos.left,
-      top: pos.top,
-      x: 0,
-      y: 0,
-      margin: 0,
-      zIndex: PLUS_Z,
-      opacity: 1,
-    });
-  });
+  dockIntoFrame(pinnedHome, heroFrame);
 }
 
 window.addEventListener("resize", refreshResponsiveLayout);

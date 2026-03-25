@@ -2164,3 +2164,10 @@ body.is-intro .mobile-menu-backdrop {
     opacity: 1;
   }
 }
+.frame-plus,
+.about-title .about-plus,
+.projects-frame .projects-plus {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
