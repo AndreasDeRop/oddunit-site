@@ -10,6 +10,8 @@ ScrollTrigger.config({
   ignoreMobileResize: true,
 });
 
+// ScrollTrigger.normalizeScroll(true);
+
 const BREAKPOINT = 900;
 const SWAP_AT = 0.48;
 const TURNS_TOTAL = 2;
@@ -44,6 +46,7 @@ if (canvas && canvasCell && scrollSpace) {
 }
 
 function initProjectsScene() {
+  const nextBtn = document.getElementById("projectNextBtn");
   const badgeEl = document.getElementById("projectBadge");
   const editionEl = document.getElementById("projectEdition");
   const titleEl = document.getElementById("projectTitle");
@@ -103,29 +106,132 @@ function initProjectsScene() {
   let renderQueued = false;
   let baseTickerNodes = [];
   let resizeTimer = 0;
-  const typedOnce = [false, false];
+  let sceneVisibilityST = null;
+  let sceneActive = false;
+  let rafId = 0;
+  let mobileRotateTween = null;
+  let scrollProgress = 0;
+    const typedOnce = [false, false];
+if (nextBtn && nextBtn.dataset.bound !== "1") {
+  nextBtn.dataset.bound = "1";
+  nextBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
+    if (!isMobile()) return;
+    goToNextProject();
+  });
+}
   function isMobile() {
     return window.matchMedia(`(max-width: ${BREAKPOINT}px)`).matches;
   }
 
-  function requestRender() {
-    if (renderQueued) return;
+function requestRender() {
+  if (sceneActive) return;
+  if (renderQueued) return;
 
-    renderQueued = true;
+  renderQueued = true;
 
-    requestAnimationFrame(() => {
-      renderQueued = false;
-      renderer.render(scene, camera);
-    });
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    renderer.render(scene, camera);
+  });
+}
+function renderScene() {
+  renderer.render(scene, camera);
+}
+
+function tick() {
+  if (!sceneActive) return;
+
+  renderScene();
+  rafId = requestAnimationFrame(tick);
+}
+
+function startScene() {
+  if (sceneActive) return;
+  sceneActive = true;
+  tick();
+}
+
+function stopScene() {
+  sceneActive = false;
+
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
   }
-
+}
   function updateDots(idx) {
     dotEls.forEach((dot, i) => {
       dot.classList.toggle("is-active", i === idx);
     });
   }
+function setActiveProject(idx, useTyping = false) {
+  if (!toy1 || !toy2) return;
 
+  activeIdx = idx;
+  showToy(idx);
+  setModelOpaque(idx === 0 ? toy1 : toy2);
+  updateDots(idx);
+  renderCopy(idx, useTyping);
+  requestRender();
+}
+
+function startMobileRotate() {
+  if (mobileRotateTween) return;
+
+  mobileRotateTween = gsap.to(root.rotation, {
+    y: `+=${Math.PI * 2}`,
+    duration: 8,
+    ease: "none",
+    repeat: -1,
+  });
+}
+
+function stopMobileRotate() {
+  if (!mobileRotateTween) return;
+  mobileRotateTween.kill();
+  mobileRotateTween = null;
+}
+
+function goToNextProject() {
+  const nextIdx = (activeIdx + 1) % DROPS.length;
+
+  setActiveProject(nextIdx, true);
+
+  gsap.fromTo(
+    root.rotation,
+    { y: root.rotation.y },
+    {
+      y: root.rotation.y + Math.PI * 0.9,
+      duration: 0.55,
+      ease: "power2.out",
+      overwrite: true,
+      onComplete: () => {
+        if (isMobile()) {
+          stopMobileRotate();
+          startMobileRotate();
+        }
+      },
+    },
+  );
+}
+
+function syncProjectsMode() {
+  if (isMobile()) {
+    if (mainScrollST) {
+      mainScrollST.kill();
+      mainScrollST = null;
+    }
+
+    startMobileRotate();
+    return;
+  }
+
+  stopMobileRotate();
+  setupMainScroll();
+}
   function setCopyStatic(idx) {
     const item = DROPS[idx];
     badgeEl.textContent = item.badge;
@@ -273,8 +379,8 @@ function initProjectsScene() {
       return;
     }
 
-    root.scale.setScalar(isMobile() ? 0.72 : 0.84);
-    camera.position.z = isMobile() ? baseCamZ * 1.18 : baseCamZ;
+    root.scale.setScalar(isMobile() ? 0.9 : 0.84);
+    camera.position.z = isMobile() ? baseCamZ * 1.02 : baseCamZ;
     camera.position.y = isMobile() ? heightHint * 0.08 : heightHint * 0.55;
     camera.lookAt(0, getLookY(), 0);
 
@@ -354,59 +460,87 @@ function initProjectsScene() {
       repeat: -1,
     });
   }
+   function applyRotation() {
+  root.rotation.y = scrollProgress * Math.PI * 2 * TURNS_TOTAL;
+}
+ function applyProgress(progress) {
+  if (!toy1 || !toy2) return;
 
-  function applyProgress(progress) {
-    if (!toy1 || !toy2) return;
+  scrollProgress = progress;
 
-    const idx = progress >= SWAP_AT ? 1 : 0;
+  const idx = progress >= SWAP_AT ? 1 : 0;
 
-    root.rotation.y = progress * Math.PI * 2 * TURNS_TOTAL;
+  applyRotation();
 
-    if (idx !== activeIdx) {
-      activeIdx = idx;
-      showToy(idx);
-      setModelOpaque(idx === 0 ? toy1 : toy2);
-      updateDots(idx);
+  if (idx !== activeIdx) {
+    activeIdx = idx;
+    showToy(idx);
+    setModelOpaque(idx === 0 ? toy1 : toy2);
+    updateDots(idx);
 
-      if (!typedOnce[idx]) {
-        typedOnce[idx] = true;
-        renderCopy(idx, true);
-      } else {
-        renderCopy(idx, false);
-      }
+    if (!typedOnce[idx]) {
+      typedOnce[idx] = true;
+      renderCopy(idx, true);
+    } else {
+      renderCopy(idx, false);
     }
+  }
 
-    camera.lookAt(0, getLookY(), 0);
+  camera.lookAt(0, getLookY(), 0);
+
+  if (!sceneActive) {
     requestRender();
   }
+}
 
-  function setupMainScroll() {
-    if (mainScrollST) {
-      mainScrollST.kill();
-      mainScrollST = null;
+function setupMainScroll() {
+  if (mainScrollST) {
+    mainScrollST.kill();
+    mainScrollST = null;
+  }
+
+  if (isMobile()) return;
+
+  mainScrollST = ScrollTrigger.create({
+    trigger: scrollSpace,
+    start: "top top",
+    end: "bottom bottom",
+    scrub: 1,
+    invalidateOnRefresh: true,
+    onUpdate: (self) => {
+      applyProgress(self.progress);
+    },
+  });
+}
+  function setupSceneVisibility() {
+    if (sceneVisibilityST) {
+      sceneVisibilityST.kill();
+      sceneVisibilityST = null;
     }
 
-    mainScrollST = ScrollTrigger.create({
+    sceneVisibilityST = ScrollTrigger.create({
       trigger: scrollSpace,
-      start: "top top",
-      end: "bottom bottom",
-      scrub: 1,
-      onUpdate: (self) => {
-        applyProgress(self.progress);
-      },
+      start: "top bottom",
+      end: "bottom top",
+      onEnter: startScene,
+      onEnterBack: startScene,
+      onLeave: stopScene,
+      onLeaveBack: stopScene,
     });
+
+
   }
 
-  function scheduleRefresh(delay = 140) {
-    clearTimeout(resizeTimer);
+function scheduleRefresh(delay = 140) {
+  clearTimeout(resizeTimer);
 
-    resizeTimer = window.setTimeout(() => {
-      updateLayout();
-      rebuildTicker();
-      ScrollTrigger.refresh();
-    }, delay);
-  }
-
+  resizeTimer = window.setTimeout(() => {
+    updateLayout();
+    syncProjectsMode();
+    rebuildTicker();
+    ScrollTrigger.refresh();
+  }, delay);
+}
   const resizeObserver =
     typeof ResizeObserver !== "undefined"
       ? new ResizeObserver(() => {
@@ -457,11 +591,12 @@ function initProjectsScene() {
       updateDots(0);
       typedOnce[0] = true;
 
-      updateLayout();
-      setupMainScroll();
-      rebuildTicker();
-      requestRender();
-      ScrollTrigger.refresh();
+updateLayout();
+syncProjectsMode();
+setupSceneVisibility();
+rebuildTicker();
+requestRender();
+ScrollTrigger.refresh();
     },
   );
 }

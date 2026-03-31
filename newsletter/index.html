@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="nl" data-theme="lab">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ODD UNIT — Nieuwsbrief</title>
+    <meta
+      name="description"
+      content="Schrijf je in op de ODD UNIT nieuwsbrief voor drops, projecten en updates."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      @font-face {
+        font-family: "Medium";
+        src: url("/fonts/medium.otf") format("opentype");
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      :root {
+        --font-display: "Medium", sans-serif;
+        --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-jet: "JetBrains Mono", monospace;
+
+        --bg: #070707;
+        --orange: #ff6b00;
+        --orange-rgb: 255 107 0;
+        --white: #ffffff;
+        --line-w: 2px;
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+        --topbar-h: 72px;
+        --page-max: 1640px;
+        --card-max: 1500px;
+
+        --x-pad: clamp(16px, 3vw, 40px);
+        --y-pad: clamp(20px, 3vw, 40px);
+        --card-pad: clamp(24px, 3vw, 56px);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--white);
+        font-family: var(--font-body);
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.26;
+        background-image:
+          linear-gradient(rgba(255, 107, 0, 0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 107, 0, 0.07) 1px, transparent 1px),
+          linear-gradient(rgba(255, 107, 0, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 107, 0, 0.03) 1px, transparent 1px);
+        background-size:
+          32px 32px,
+          32px 32px,
+          20px 20px,
+          20px 20px;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page-shell {
+        position: relative;
+        z-index: 2;
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: var(--topbar-h) 1fr;
+      }
+
+      .topbar {
+        background: var(--orange);
+      }
+
+      .page {
+        width: min(100%, var(--page-max));
+        margin: 0 auto;
+        padding: var(--y-pad) var(--x-pad);
+        display: grid;
+        place-items: center;
+        min-height: calc(100vh - var(--topbar-h));
+      }
+
+      .form-col {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
+      .form-card {
+        position: relative;
+        width: min(100%, var(--card-max));
+        min-height: min(
+          670px,
+          calc(100vh - var(--topbar-h) - (var(--y-pad) * 2))
+        );
+        padding: var(--card-pad);
+        border: var(--line-w) solid var(--orange);
+        background: rgba(7, 7, 7, 0.92);
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+
+        text-align: center;
+      }
+
+      .form-card::before,
+      .form-card::after {
+        content: "+";
+        position: absolute;
+        font-family: var(--font-jet);
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 700;
+        color: var(--bg);
+        -webkit-text-stroke: 1.5px var(--orange);
+        pointer-events: none;
+      }
+
+      .form-card::before {
+        top: -19px;
+        left: -10px;
+      }
+
+      .form-card::after {
+        right: -10px;
+        bottom: -19px;
+      }
+
+      .form-top {
+        width: min(100%, 760px);
+        display: grid;
+        justify-items: center;
+        gap: 12px;
+      }
+
+      .kicker {
+        font-family: var(--font-jet);
+        font-size: clamp(12px, 1vw, 15px);
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--orange);
+      }
+
+      .form-title {
+        font-family: var(--font-display);
+        font-size: clamp(56px, 7vw, 118px);
+        line-height: 0.82;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--orange);
+      }
+
+      .form-copy {
+        width: min(100%, 640px);
+        font-family: var(--font-jet);
+        font-size: clamp(14px, 1.2vw, 18px);
+        line-height: 1.65;
+        letter-spacing: 0.04em;
+        color: rgba(255, 255, 255, 0.88);
+      }
+
+      .benefits {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .benefit-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 107, 0, 0.5);
+        color: var(--orange);
+        font-family: var(--font-jet);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .embed-shell {
+        width: min(100%, 760px);
+        display: grid;
+        justify-items: center;
+        gap: 16px;
+      }
+
+      .eo-form-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
+      .eo-form-wrapper > * {
+        margin-inline: auto !important;
+      }
+
+      .embed-note {
+        width: min(100%, 920px);
+        font-family: var(--font-jet);
+        font-size: 11px;
+        line-height: 1.6;
+        letter-spacing: 0.04em;
+        color: rgba(255, 255, 255, 0.62);
+        text-align: center;
+      }
+
+      @media (max-width: 900px) {
+        :root {
+          --topbar-h: 56px;
+          --x-pad: 10px;
+          --y-pad: 10px;
+          --card-pad: 18px;
+        }
+
+        .page {
+          min-height: calc(100vh - var(--topbar-h));
+          padding: var(--y-pad) var(--x-pad);
+          align-items: start;
+        }
+
+        .form-card {
+          min-height: auto;
+          justify-content: flex-start;
+          gap: 18px;
+          padding: 18px 14px;
+        }
+
+        .form-card::before,
+        .form-card::after {
+          font-size: 30px;
+        }
+
+        .form-title {
+          font-size: clamp(44px, 14vw, 72px);
+        }
+
+        .form-copy {
+          font-size: 13px;
+          width: min(100%, 320px);
+        }
+
+        .benefits {
+          gap: 8px;
+        }
+
+        .benefit-pill {
+          min-height: 32px;
+          padding: 0 12px;
+          font-size: 10px;
+          letter-spacing: 0.08em;
+        }
+
+        .embed-shell {
+          width: 100%;
+          gap: 14px;
+        }
+
+        .embed-note {
+          font-size: 10px;
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .form-card {
+          padding: 16px 12px;
+        }
+
+        .kicker {
+          font-size: 11px;
+          letter-spacing: 0.18em;
+        }
+
+        .form-title {
+          font-size: clamp(38px, 16vw, 58px);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page-shell">
+      <header class="topbar"></header>
+
+      <main class="page">
+        <div class="form-col">
+          <div class="form-card">
+            <div class="form-top">
+              <p class="kicker">Sign up</p>
+
+              <h1 class="form-title">
+                STAY<br />
+                IN THE LOOP
+              </h1>
+
+              <p class="form-copy">
+                Laat je e-mailadres achter en wees op de hoogte van al onze
+                nieuwe projecten!
+              </p>
+            </div>
+
+            <div class="benefits" aria-hidden="true">
+              <span class="benefit-pill">Project updates</span>
+              <span class="benefit-pill">Exclusive drops</span>
+              <span class="benefit-pill">Studio news</span>
+            </div>
+
+            <div class="embed-shell">
+              <div class="eo-form-wrapper" id="eoFormWrapper">
+                <script
+                  async
+                  src="https://eomail5.com/form/a5a3e4e4-2949-11f1-8c74-3dee128eaf66.js"
+                  data-form="a5a3e4e4-2949-11f1-8c74-3dee128eaf66"
+                ></script>
+              </div>
+
+              <p class="embed-note">
+                Door je in te schrijven ga je akkoord met communicatie van ODD
+                UNIT STUDIO. Uitschrijven kan later altijd.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

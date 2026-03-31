@@ -25,7 +25,8 @@ const logoPrintFxEl = document.getElementById("logoPrintFx");
 const heroFrameEl = document.querySelector(".hero-frame");
 const aboutTitleEl = document.querySelector(".about-title");
 const projectsFrameEl = document.querySelector(".projects-frame");
-
+//coming soon
+// const landingComingSoonEl = document.getElementById("landingComingSoon");
 const plusEls = {
   tl: document.querySelector(".hero-frame .fp-tl"),
   tr: document.querySelector(".hero-frame .fp-tr"),
@@ -42,7 +43,7 @@ let wheelBound = false;
 let prevOverflowHtml = "";
 let prevOverflowBody = "";
 let prevPadRight = "";
-
+let mobileFrozenPlusTargets = null;
 const mobileMq = window.matchMedia(`(max-width: ${BREAKPOINT}px)`);
 
 function isMobile() {
@@ -218,7 +219,40 @@ function getSectionCornerTargets(section, dy = 0) {
     br: { left: rect.right, top: rect.bottom },
   };
 }
+function captureCurrentPlusTargets() {
+  return {
+    tl: plusEls.tl ? plusEls.tl.getBoundingClientRect() : null,
+    tr: plusEls.tr ? plusEls.tr.getBoundingClientRect() : null,
+    bl: plusEls.bl ? plusEls.bl.getBoundingClientRect() : null,
+    br: plusEls.br ? plusEls.br.getBoundingClientRect() : null,
+  };
+}
 
+function applyFrozenPlusTargets(targets) {
+  if (!targets) return;
+
+  Object.entries(plusEls).forEach(([key, el]) => {
+    const rect = targets[key];
+    if (!el || !rect) return;
+
+    document.body.appendChild(el);
+
+    gsap.set(el, {
+      position: "fixed",
+      left: rect.left,
+      top: rect.top,
+      x: 0,
+      y: 0,
+      margin: 0,
+      zIndex: PLUS_Z,
+      opacity: 1,
+    });
+
+    el.style.right = "";
+    el.style.bottom = "";
+    el.style.visibility = "";
+  });
+}
 function normalizeFixedPosition(el) {
   const r = el.getBoundingClientRect();
 
@@ -281,7 +315,7 @@ function animatePlusesToSection(tl, section, dy = 0, duration = SNAP_DUR, at = 0
 
     const start = normalizeFixedPosition(el);
     const target = targets[key];
-
+    //terugzetten na coming soon
     tl.to(
       el,
       {
@@ -428,10 +462,17 @@ function refreshResponsiveLayout() {
   if (!introPlayed) return;
 
   if (isMobile()) {
+    if (mobileFrozenPlusTargets) {
+      applyFrozenPlusTargets(mobileFrozenPlusTargets);
+      return;
+    }
+
     applyPlusesInstant(SECTION.HERO);
+    mobileFrozenPlusTargets = captureCurrentPlusTargets();
     return;
   }
 
+  mobileFrozenPlusTargets = null;
   applyPlusesInstant(snapState);
 }
 
@@ -609,17 +650,46 @@ function playIntro() {
       gsap.set(logoPrintFxEl, { opacity: 0 });
       gsap.set(logoMountEl, { opacity: 1 });
 
-      pinHeroPluses();
-      snapState = SECTION.HERO;
+pinHeroPluses();
+snapState = SECTION.HERO;
 
-      document.body.classList.remove("is-intro");
-      lockScroll(false);
-      bindDesktopWheelSnap();
+if (isMobile()) {
+  mobileFrozenPlusTargets = captureCurrentPlusTargets();
+}
 
-      requestAnimationFrame(() => {
-        refreshResponsiveLayout();
-      });
+document.body.classList.remove("is-intro");
+lockScroll(false);
+bindDesktopWheelSnap();
+
+requestAnimationFrame(() => {
+  refreshResponsiveLayout();
+});
     },
+
+//coming soon
+// onComplete: () => {
+//   gsap.set(logoPrintFxEl, {
+//     x: startX,
+//     y: startY,
+//     scale: startScale,
+//     opacity: 1,
+//   });
+
+//   gsap.set(landingPlusEls, { opacity: 0 });
+//   gsap.set(Object.values(plusEls), { opacity: 0 });
+//   gsap.set(logoMountEl, { opacity: 0 });
+
+//   document.body.classList.remove("is-intro");
+
+//   document.documentElement.style.overflow = "hidden";
+//   document.body.style.overflow = "hidden";
+
+//   gsap.to(landingComingSoonEl, {
+//     opacity: 1,
+//     duration: 0.35,
+//     ease: "power2.out",
+//   });
+// },
   });
 
   tl.to(
@@ -645,7 +715,7 @@ function playIntro() {
     },
     0,
   );
-
+  //terugzetten na coming soon
   tl.to(
     logoPrintFxEl,
     {
@@ -676,7 +746,6 @@ function playIntro() {
       MOVE_START,
     );
   });
-
   tl.to(
     landingEl,
     { "--landingA": 0, duration: MOVE_DUR * 0.9, ease: "power1.out" },
@@ -693,16 +762,22 @@ let resizeTimer = 0;
 function bindResizeHandling() {
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
+
     resizeTimer = window.setTimeout(() => {
+      if (isMobile()) return;
       refreshResponsiveLayout();
     }, 120);
   });
 
   window.addEventListener("orientationchange", () => {
     clearTimeout(resizeTimer);
+
     resizeTimer = window.setTimeout(() => {
+      if (isMobile()) {
+        mobileFrozenPlusTargets = null;
+      }
       refreshResponsiveLayout();
-    }, 220);
+    }, 260);
   });
 }
 

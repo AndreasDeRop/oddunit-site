@@ -13,9 +13,9 @@
 
       <div class="nav-rail">
         <nav class="nav-links" aria-label="Primary">
+          <a href="#about">ABOUT+US</a>
           <a href="#projects">PROJECTS</a>
           <a href="#socials">SOCIALS</a>
-          <a href="#about">ABOUT+US</a>
           <a href="#faq">FAQ</a>
         </nav>
       </div>
@@ -56,11 +56,15 @@
 
     <!-- INTRO overlay -->
     <div class="landing" id="landing" aria-hidden="false">
-      <div class="landing-mark" id="landingMark">
-        <span class="plus landing-plus" data-corner="tl"></span>
-        <span class="plus landing-plus" data-corner="tr"></span>
-        <span class="plus landing-plus" data-corner="bl"></span>
-        <span class="plus landing-plus" data-corner="br"></span>
+      <div class="landing-hold">
+        <div class="landing-mark" id="landingMark">
+          <span class="plus landing-plus" data-corner="tl"></span>
+          <span class="plus landing-plus" data-corner="tr"></span>
+          <span class="plus landing-plus" data-corner="bl"></span>
+          <span class="plus landing-plus" data-corner="br"></span>
+        </div>
+
+        <!-- <p class="landing-comingsoon" id="landingComingSoon">COMING SOON...</p> -->
       </div>
     </div>
 
@@ -79,7 +83,6 @@
       <div class="logo-printfx__printed" aria-hidden="true"></div>
       <div class="logo-printfx__layer" aria-hidden="true"></div>
     </div>
-
     <!-- HERO -->
     <main class="hero" id="hero" aria-hidden="true">
       <div class="hero-frame" aria-hidden="true">
@@ -221,8 +224,16 @@
           <div class="projects-frame">
             <div class="projects-canvas-cell" aria-hidden="true">
               <canvas id="projectsCanvas"></canvas>
-            </div>
 
+              <button
+                class="projects-mobile-next"
+                id="projectNextBtn"
+                type="button"
+                aria-label="Next project"
+              >
+                ›
+              </button>
+            </div>
             <aside class="projects-side projects-side-top">
               <div class="projects-kicker">PROJECT DROP</div>
 
