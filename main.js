@@ -6,12 +6,13 @@ gsap.registerPlugin(ScrollToPlugin);
 
 const BREAKPOINT = 900;
 const SNAP_DUR = 0.9;
-const PLUS_Z = 20001;
+const PLUS_Z = 99999;
 
 const SECTION = {
   HERO: "hero",
   ABOUT: "about",
   PROJECTS: "projects",
+  SOCIALS: "socials",
 };
 
 const landingEl = document.getElementById("landing");
@@ -25,6 +26,7 @@ const logoPrintFxEl = document.getElementById("logoPrintFx");
 const heroFrameEl = document.querySelector(".hero-frame");
 const aboutTitleEl = document.querySelector(".about-title");
 const projectsFrameEl = document.querySelector(".projects-frame");
+const socialsFrameEl = document.querySelector(".socials-frame");
 //coming soon
 // const landingComingSoonEl = document.getElementById("landingComingSoon");
 const plusEls = {
@@ -177,6 +179,7 @@ function getSectionElement(section) {
   if (section === SECTION.HERO) return document.getElementById("hero");
   if (section === SECTION.ABOUT) return document.getElementById("about");
   if (section === SECTION.PROJECTS) return document.getElementById("projects");
+  if (section === SECTION.SOCIALS) return document.getElementById("socials")
   return null;
 }
 
@@ -195,6 +198,7 @@ function getTargetFrameRect(section) {
   if (section === SECTION.HERO) return heroFrameEl?.getBoundingClientRect() || null;
   if (section === SECTION.ABOUT) return aboutTitleEl?.getBoundingClientRect() || null;
   if (section === SECTION.PROJECTS) return projectsFrameEl?.getBoundingClientRect() || null;
+  if (section === SECTION.SOCIALS) return socialsFrameEl?.getBoundingClientRect() || null;
   return null;
 }
 function rectAfterScroll(rectNow, dy) {
@@ -204,6 +208,13 @@ function rectAfterScroll(rectNow, dy) {
     top: rectNow.top - dy,
     bottom: rectNow.bottom - dy,
   };
+}
+function settlePluses(section) {
+  if (isMobile()) {
+    dockPlusesToSection(section);
+  } else {
+    applyPlusesInstant(section);
+  }
 }
 function getSectionCornerTargets(section, dy = 0) {
   const rectNow = getTargetFrameRect(section);
@@ -342,12 +353,12 @@ function goToSection(section) {
   inputLockUntil = now() + 900;
 
   const tl = gsap.timeline({
-    onComplete: () => {
-      snapState = section;
-      snapBusy = false;
-      inputLockUntil = now() + 220;
-      applyPlusesInstant(section);
-    },
+onComplete: () => {
+  snapState = section;
+  snapBusy = false;
+  inputLockUntil = now() + 220;
+  settlePluses(section);
+},
   });
 
   tl.add(scrollToY(targetY, SNAP_DUR), 0);
@@ -360,7 +371,12 @@ function shouldSnapBackFromProjects() {
 
   return window.scrollY <= projectsEl.offsetTop + 32;
 }
+function shouldSnapBackFromSocials() {
+  const socialsEl = getSectionElement(SECTION.SOCIALS);
+  if (!socialsEl) return false;
 
+  return window.scrollY <= socialsEl.offsetTop + 32;
+}
 function bindDesktopWheelSnap() {
   if (wheelBound) return;
   wheelBound = true;
@@ -375,7 +391,10 @@ function bindDesktopWheelSnap() {
       if (absY < 10) return;
 
       if (snapBusy || now() < inputLockUntil) {
-        if (snapState !== SECTION.PROJECTS || shouldSnapBackFromProjects()) {
+        if (
+          (snapState !== SECTION.PROJECTS || shouldSnapBackFromProjects()) &&
+          (snapState !== SECTION.SOCIALS || shouldSnapBackFromSocials())
+        ) {
           e.preventDefault();
         }
         return;
@@ -401,9 +420,20 @@ function bindDesktopWheelSnap() {
       }
 
       if (snapState === SECTION.PROJECTS) {
-        if (e.deltaY < 0 && shouldSnapBackFromProjects()) {
-          e.preventDefault();
+        e.preventDefault();
+
+        if (e.deltaY > 0) {
+          goToSection(SECTION.SOCIALS);
+        } else {
           goToSection(SECTION.ABOUT);
+        }
+        return;
+      }
+
+      if (snapState === SECTION.SOCIALS) {
+        if (e.deltaY < 0 && shouldSnapBackFromSocials()) {
+          e.preventDefault();
+          goToSection(SECTION.PROJECTS);
         }
       }
     },
@@ -449,6 +479,11 @@ function bindScrollTriggers() {
         return;
       }
 
+      if (target.id === "socials"){
+        goToSection(SECTION.SOCIALS);
+        return;
+      }
+
       scrollToY(target.offsetTop, 0.9);
     });
   });
@@ -467,7 +502,7 @@ function refreshResponsiveLayout() {
       return;
     }
 
-    applyPlusesInstant(SECTION.HERO);
+    dockPlusesToSection(SECTION.HERO);
     mobileFrozenPlusTargets = captureCurrentPlusTargets();
     return;
   }
@@ -649,8 +684,7 @@ function playIntro() {
     onComplete: () => {
       gsap.set(logoPrintFxEl, { opacity: 0 });
       gsap.set(logoMountEl, { opacity: 1 });
-
-pinHeroPluses();
+settlePluses(SECTION.HERO);
 snapState = SECTION.HERO;
 
 if (isMobile()) {
@@ -758,7 +792,58 @@ requestAnimationFrame(() => {
 }
 
 let resizeTimer = 0;
+function dockPlusesToSection(section) {
+  let container = null;
 
+  if (section === SECTION.HERO) container = heroFrameEl;
+  if (section === SECTION.ABOUT) container = aboutTitleEl;
+  if (section === SECTION.PROJECTS) container = projectsFrameEl;
+  if (section === SECTION.SOCIALS) container = socialsFrameEl;
+
+  if (!container) return;
+
+  Object.entries(plusEls).forEach(([key, el]) => {
+    if (!el) return;
+
+    container.appendChild(el);
+
+    gsap.set(el, {
+      position: "absolute",
+      x: 0,
+      y: 0,
+      margin: 0,
+      zIndex: PLUS_Z,
+      opacity: 1,
+      clearProps: "left,top,right,bottom",
+    });
+
+    el.style.left = "";
+    el.style.right = "";
+    el.style.top = "";
+    el.style.bottom = "";
+    el.style.visibility = "";
+
+    if (key === "tl") {
+      el.style.left = "0";
+      el.style.top = "0";
+    }
+
+    if (key === "tr") {
+      el.style.right = "0";
+      el.style.top = "0";
+    }
+
+    if (key === "bl") {
+      el.style.left = "0";
+      el.style.bottom = "0";
+    }
+
+    if (key === "br") {
+      el.style.right = "0";
+      el.style.bottom = "0";
+    }
+  });
+}
 function bindResizeHandling() {
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
