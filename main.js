@@ -13,6 +13,8 @@ const SECTION = {
   ABOUT: "about",
   PROJECTS: "projects",
   SOCIALS: "socials",
+  CONTACT: "contact",
+  NEWSLETTER: "newsletter",
 };
 
 const landingEl = document.getElementById("landing");
@@ -26,7 +28,9 @@ const logoPrintFxEl = document.getElementById("logoPrintFx");
 const heroFrameEl = document.querySelector(".hero-frame");
 const aboutTitleEl = document.querySelector(".about-title");
 const projectsFrameEl = document.querySelector(".projects-frame");
-const socialsFrameEl = document.querySelector(".socials-frame");
+const socialsTitleEl = document.querySelector(".socials-titlebox");
+const contactTitleEl = document.querySelector(".contact-titlebox");
+const newsletterCardEl = document.querySelector(".newsletter-card");
 //coming soon
 // const landingComingSoonEl = document.getElementById("landingComingSoon");
 const plusEls = {
@@ -179,7 +183,9 @@ function getSectionElement(section) {
   if (section === SECTION.HERO) return document.getElementById("hero");
   if (section === SECTION.ABOUT) return document.getElementById("about");
   if (section === SECTION.PROJECTS) return document.getElementById("projects");
-  if (section === SECTION.SOCIALS) return document.getElementById("socials")
+  if (section === SECTION.SOCIALS) return document.getElementById("socials");
+  if (section === SECTION.CONTACT) return document.getElementById("contact");
+  if (section === SECTION.NEWSLETTER) return document.getElementById("newsletter");
   return null;
 }
 
@@ -198,7 +204,9 @@ function getTargetFrameRect(section) {
   if (section === SECTION.HERO) return heroFrameEl?.getBoundingClientRect() || null;
   if (section === SECTION.ABOUT) return aboutTitleEl?.getBoundingClientRect() || null;
   if (section === SECTION.PROJECTS) return projectsFrameEl?.getBoundingClientRect() || null;
-  if (section === SECTION.SOCIALS) return socialsFrameEl?.getBoundingClientRect() || null;
+  if (section === SECTION.SOCIALS) return socialsTitleEl?.getBoundingClientRect() || null;
+  if (section === SECTION.CONTACT) return contactTitleEl?.getBoundingClientRect() || null;
+  if (section === SECTION.NEWSLETTER) return newsletterCardEl?.getBoundingClientRect() || null;
   return null;
 }
 function rectAfterScroll(rectNow, dy) {
@@ -377,6 +385,21 @@ function shouldSnapBackFromSocials() {
 
   return window.scrollY <= socialsEl.offsetTop + 32;
 }
+
+function shouldSnapBackFromContact() {
+  const contactEl = getSectionElement(SECTION.CONTACT);
+  if (!contactEl) return false;
+
+  return window.scrollY <= contactEl.offsetTop + 32;
+}
+
+function shouldSnapBackFromNewsletter() {
+  const newsletterEl = getSectionElement(SECTION.NEWSLETTER);
+  if (!newsletterEl) return false;
+
+  return window.scrollY <= newsletterEl.offsetTop + 32;
+}
+
 function bindDesktopWheelSnap() {
   if (wheelBound) return;
   wheelBound = true;
@@ -393,7 +416,9 @@ function bindDesktopWheelSnap() {
       if (snapBusy || now() < inputLockUntil) {
         if (
           (snapState !== SECTION.PROJECTS || shouldSnapBackFromProjects()) &&
-          (snapState !== SECTION.SOCIALS || shouldSnapBackFromSocials())
+          (snapState !== SECTION.SOCIALS || shouldSnapBackFromSocials()) &&
+          (snapState !== SECTION.CONTACT || shouldSnapBackFromContact()) &&
+          (snapState !== SECTION.NEWSLETTER || shouldSnapBackFromNewsletter())
         ) {
           e.preventDefault();
         }
@@ -431,9 +456,32 @@ function bindDesktopWheelSnap() {
       }
 
       if (snapState === SECTION.SOCIALS) {
-        if (e.deltaY < 0 && shouldSnapBackFromSocials()) {
-          e.preventDefault();
+        e.preventDefault();
+
+        if (e.deltaY > 0) {
+          goToSection(SECTION.CONTACT);
+        } else if (shouldSnapBackFromSocials()) {
           goToSection(SECTION.PROJECTS);
+        }
+        return;
+      }
+
+      if (snapState === SECTION.CONTACT) {
+        e.preventDefault();
+
+        if (e.deltaY > 0) {
+          goToSection(SECTION.NEWSLETTER);
+        } else if (shouldSnapBackFromContact()) {
+          goToSection(SECTION.SOCIALS);
+        }
+        return;
+      }
+
+      if (snapState === SECTION.NEWSLETTER) {
+        e.preventDefault();
+
+        if (e.deltaY < 0 && shouldSnapBackFromNewsletter()) {
+          goToSection(SECTION.CONTACT);
         }
       }
     },
@@ -481,6 +529,16 @@ function bindScrollTriggers() {
 
       if (target.id === "socials"){
         goToSection(SECTION.SOCIALS);
+        return;
+      }
+
+      if (target.id === "contact") {
+        goToSection(SECTION.CONTACT);
+        return;
+      }
+
+      if (target.id === "newsletter") {
+        goToSection(SECTION.NEWSLETTER);
         return;
       }
 
@@ -798,7 +856,9 @@ function dockPlusesToSection(section) {
   if (section === SECTION.HERO) container = heroFrameEl;
   if (section === SECTION.ABOUT) container = aboutTitleEl;
   if (section === SECTION.PROJECTS) container = projectsFrameEl;
-  if (section === SECTION.SOCIALS) container = socialsFrameEl;
+  if (section === SECTION.SOCIALS) container = socialsTitleEl;
+  if (section === SECTION.CONTACT) container = contactTitleEl;
+  if (section === SECTION.NEWSLETTER) container = newsletterCardEl;
 
   if (!container) return;
 

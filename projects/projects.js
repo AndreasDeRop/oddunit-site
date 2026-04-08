@@ -2,19 +2,8 @@ import * as THREE from "https://esm.sh/three@0.160.0";
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 import { RoomEnvironment } from "https://esm.sh/three@0.160.0/examples/jsm/environments/RoomEnvironment.js";
 import gsap from "https://esm.sh/gsap@3.12.2";
-import ScrollTrigger from "https://esm.sh/gsap@3.12.2/ScrollTrigger";
-
-gsap.registerPlugin(ScrollTrigger);
-
-ScrollTrigger.config({
-  ignoreMobileResize: true,
-});
-
-// ScrollTrigger.normalizeScroll(true);
 
 const BREAKPOINT = 900;
-const SWAP_AT = 0.48;
-const TURNS_TOTAL = 2;
 
 const DROPS = [
   {
@@ -22,7 +11,7 @@ const DROPS = [
     edition: "01/200",
     title: "ProtoBoy V3",
     desc:
-      "Next evolution toy. Smooth finish and attitude. Limited drops worldwide. Made with love in Belgium. Designed by Odd Unit. Cast in resin. Hand-finished. Each piece is unique.",
+      "De nieuwste Art Toy. Een strakke afwerking en een stoere uitstraling.Wereldwijd in beperkte oplage verkrijgbaar. Met liefde gemaakt in België. Ontworpen door Odd Unit. Gegoten in hars. Met de hand afgewerkt. Elk stuk is uniek.",
     link: "#",
     model: "./projects/toy1.glb",
   },
@@ -39,9 +28,9 @@ const DROPS = [
 
 const canvas = document.getElementById("projectsCanvas");
 const canvasCell = document.querySelector(".projects-canvas-cell");
-const scrollSpace = document.getElementById("projectsScrollSpace");
+const projectsSection = document.getElementById("projects");
 
-if (canvas && canvasCell && scrollSpace) {
+if (canvas && canvasCell && projectsSection) {
   initProjectsScene();
 }
 
@@ -101,137 +90,74 @@ function initProjectsScene() {
 
   let typingTween = null;
   let tickerTween = null;
-  let mainScrollST = null;
+  let idleRotateTween = null;
+  let autoplayCall = null;
+  let visibilityObserver = null;
 
   let renderQueued = false;
   let baseTickerNodes = [];
   let resizeTimer = 0;
-  let sceneVisibilityST = null;
   let sceneActive = false;
   let rafId = 0;
-  let mobileRotateTween = null;
-  let scrollProgress = 0;
-    const typedOnce = [false, false];
-if (nextBtn && nextBtn.dataset.bound !== "1") {
-  nextBtn.dataset.bound = "1";
-  nextBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
 
-    if (!isMobile()) return;
-    goToNextProject();
-  });
-}
+  const typedOnce = [false, false];
+
   function isMobile() {
     return window.matchMedia(`(max-width: ${BREAKPOINT}px)`).matches;
   }
 
-function requestRender() {
-  if (sceneActive) return;
-  if (renderQueued) return;
-
-  renderQueued = true;
-
-  requestAnimationFrame(() => {
-    renderQueued = false;
-    renderer.render(scene, camera);
-  });
-}
-function renderScene() {
-  renderer.render(scene, camera);
-}
-
-function tick() {
-  if (!sceneActive) return;
-
-  renderScene();
-  rafId = requestAnimationFrame(tick);
-}
-
-function startScene() {
-  if (sceneActive) return;
-  sceneActive = true;
-  tick();
-}
-
-function stopScene() {
-  sceneActive = false;
-
-  if (rafId) {
-    cancelAnimationFrame(rafId);
-    rafId = 0;
+  if (nextBtn && nextBtn.dataset.bound !== "1") {
+    nextBtn.dataset.bound = "1";
+    nextBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      goToNextProject();
+    });
   }
-}
+
+  function requestRender() {
+    if (sceneActive) return;
+    if (renderQueued) return;
+
+    renderQueued = true;
+
+    requestAnimationFrame(() => {
+      renderQueued = false;
+      renderer.render(scene, camera);
+    });
+  }
+
+  function renderScene() {
+    renderer.render(scene, camera);
+  }
+
+  function tick() {
+    if (!sceneActive) return;
+    renderScene();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function startScene() {
+    if (sceneActive) return;
+    sceneActive = true;
+    tick();
+  }
+
+  function stopScene() {
+    sceneActive = false;
+
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+  }
+
   function updateDots(idx) {
     dotEls.forEach((dot, i) => {
       dot.classList.toggle("is-active", i === idx);
     });
   }
-function setActiveProject(idx, useTyping = false) {
-  if (!toy1 || !toy2) return;
 
-  activeIdx = idx;
-  showToy(idx);
-  setModelOpaque(idx === 0 ? toy1 : toy2);
-  updateDots(idx);
-  renderCopy(idx, useTyping);
-  requestRender();
-}
-
-function startMobileRotate() {
-  if (mobileRotateTween) return;
-
-  mobileRotateTween = gsap.to(root.rotation, {
-    y: `+=${Math.PI * 2}`,
-    duration: 8,
-    ease: "none",
-    repeat: -1,
-  });
-}
-
-function stopMobileRotate() {
-  if (!mobileRotateTween) return;
-  mobileRotateTween.kill();
-  mobileRotateTween = null;
-}
-
-function goToNextProject() {
-  const nextIdx = (activeIdx + 1) % DROPS.length;
-
-  setActiveProject(nextIdx, true);
-
-  gsap.fromTo(
-    root.rotation,
-    { y: root.rotation.y },
-    {
-      y: root.rotation.y + Math.PI * 0.9,
-      duration: 0.55,
-      ease: "power2.out",
-      overwrite: true,
-      onComplete: () => {
-        if (isMobile()) {
-          stopMobileRotate();
-          startMobileRotate();
-        }
-      },
-    },
-  );
-}
-
-function syncProjectsMode() {
-  if (isMobile()) {
-    if (mainScrollST) {
-      mainScrollST.kill();
-      mainScrollST = null;
-    }
-
-    startMobileRotate();
-    return;
-  }
-
-  stopMobileRotate();
-  setupMainScroll();
-}
   function setCopyStatic(idx) {
     const item = DROPS[idx];
     badgeEl.textContent = item.badge;
@@ -356,6 +282,17 @@ function syncProjectsMode() {
     toy2.visible = idx === 1;
   }
 
+  function setActiveProject(idx, useTyping = false) {
+    if (!toy1 || !toy2) return;
+
+    activeIdx = idx;
+    showToy(idx);
+    setModelOpaque(idx === 0 ? toy1 : toy2);
+    updateDots(idx);
+    renderCopy(idx, useTyping);
+    requestRender();
+  }
+
   function resizeRenderer() {
     const rect = canvasCell.getBoundingClientRect();
     const width = Math.max(1, rect.width);
@@ -389,7 +326,6 @@ function syncProjectsMode() {
 
   function snapshotTickerBase() {
     if (!tickerInner) return;
-
     baseTickerNodes = Array.from(tickerInner.children).map((node) => node.cloneNode(true));
   }
 
@@ -460,87 +396,111 @@ function syncProjectsMode() {
       repeat: -1,
     });
   }
-   function applyRotation() {
-  root.rotation.y = scrollProgress * Math.PI * 2 * TURNS_TOTAL;
-}
- function applyProgress(progress) {
-  if (!toy1 || !toy2) return;
 
-  scrollProgress = progress;
+  function startIdleRotate() {
+    if (idleRotateTween) return;
 
-  const idx = progress >= SWAP_AT ? 1 : 0;
-
-  applyRotation();
-
-  if (idx !== activeIdx) {
-    activeIdx = idx;
-    showToy(idx);
-    setModelOpaque(idx === 0 ? toy1 : toy2);
-    updateDots(idx);
-
-    if (!typedOnce[idx]) {
-      typedOnce[idx] = true;
-      renderCopy(idx, true);
-    } else {
-      renderCopy(idx, false);
-    }
-  }
-
-  camera.lookAt(0, getLookY(), 0);
-
-  if (!sceneActive) {
-    requestRender();
-  }
-}
-
-function setupMainScroll() {
-  if (mainScrollST) {
-    mainScrollST.kill();
-    mainScrollST = null;
-  }
-
-  if (isMobile()) return;
-
-  mainScrollST = ScrollTrigger.create({
-    trigger: scrollSpace,
-    start: "top top",
-    end: "bottom bottom",
-    scrub: 1,
-    invalidateOnRefresh: true,
-    onUpdate: (self) => {
-      applyProgress(self.progress);
-    },
-  });
-}
-  function setupSceneVisibility() {
-    if (sceneVisibilityST) {
-      sceneVisibilityST.kill();
-      sceneVisibilityST = null;
-    }
-
-    sceneVisibilityST = ScrollTrigger.create({
-      trigger: scrollSpace,
-      start: "top bottom",
-      end: "bottom top",
-      onEnter: startScene,
-      onEnterBack: startScene,
-      onLeave: stopScene,
-      onLeaveBack: stopScene,
+    idleRotateTween = gsap.to(root.rotation, {
+      y: `+=${Math.PI * 2}`,
+      duration: isMobile() ? 8 : 10,
+      ease: "none",
+      repeat: -1,
     });
-
-
   }
 
-function scheduleRefresh(delay = 140) {
-  clearTimeout(resizeTimer);
+  function stopIdleRotate() {
+    if (!idleRotateTween) return;
+    idleRotateTween.kill();
+    idleRotateTween = null;
+  }
 
-  resizeTimer = window.setTimeout(() => {
-    updateLayout();
-    syncProjectsMode();
-    rebuildTicker();
-    ScrollTrigger.refresh();
-  }, delay);
-}
+  function restartAutoplay() {
+    if (autoplayCall) {
+      autoplayCall.kill();
+      autoplayCall = null;
+    }
+
+    if (isMobile()) return;
+
+    autoplayCall = gsap.delayedCall(4.5, () => {
+      goToNextProject();
+    });
+  }
+
+  function stopAutoplay() {
+    if (!autoplayCall) return;
+    autoplayCall.kill();
+    autoplayCall = null;
+  }
+
+  function syncProjectsMode() {
+    stopIdleRotate();
+    stopAutoplay();
+    gsap.killTweensOf(root.rotation);
+
+    startIdleRotate();
+
+    if (!isMobile()) {
+      restartAutoplay();
+    }
+  }
+
+  function goToNextProject() {
+    const nextIdx = (activeIdx + 1) % DROPS.length;
+
+    setActiveProject(nextIdx, true);
+
+    stopIdleRotate();
+    gsap.killTweensOf(root.rotation);
+
+    gsap.to(root.rotation, {
+      y: root.rotation.y + Math.PI * 0.9,
+      duration: 0.6,
+      ease: "power2.out",
+      overwrite: true,
+      onComplete: () => {
+        startIdleRotate();
+        restartAutoplay();
+      },
+    });
+  }
+
+  function setupSceneVisibility() {
+    if (visibilityObserver) {
+      visibilityObserver.disconnect();
+    }
+
+    visibilityObserver = new IntersectionObserver(
+      (entries) => {
+        const visible = entries[0]?.isIntersecting;
+
+        if (visible) {
+          startScene();
+          startIdleRotate();
+          if (!isMobile()) restartAutoplay();
+        } else {
+          stopScene();
+          stopIdleRotate();
+          stopAutoplay();
+        }
+      },
+      { threshold: 0.2 },
+    );
+
+    visibilityObserver.observe(projectsSection);
+  }
+
+  function scheduleRefresh(delay = 140) {
+    clearTimeout(resizeTimer);
+
+    resizeTimer = window.setTimeout(() => {
+      updateLayout();
+      syncProjectsMode();
+      rebuildTicker();
+      requestRender();
+    }, delay);
+  }
+
   const resizeObserver =
     typeof ResizeObserver !== "undefined"
       ? new ResizeObserver(() => {
@@ -591,12 +551,11 @@ function scheduleRefresh(delay = 140) {
       updateDots(0);
       typedOnce[0] = true;
 
-updateLayout();
-syncProjectsMode();
-setupSceneVisibility();
-rebuildTicker();
-requestRender();
-ScrollTrigger.refresh();
+      updateLayout();
+      syncProjectsMode();
+      setupSceneVisibility();
+      rebuildTicker();
+      requestRender();
     },
   );
 }
