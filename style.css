@@ -1338,10 +1338,11 @@ body.is-intro .mobile-menu-backdrop {
   height: clamp(112px, calc(var(--frameW) * 0.11), 210px);
   object-fit: contain;
   display: block;
+  transition: transform 0.22s var(--ease);
 }
 
 .social-card--instagram .social-card__icon img {
-  transform: scale(0.9);
+  transform: scale(1.04);
 }
 
 .social-card--tiktok .social-card__icon img {
@@ -1349,11 +1350,11 @@ body.is-intro .mobile-menu-backdrop {
 }
 
 .social-card--behance .social-card__icon img {
-  transform: scale(0.88);
+  transform: scale(0.72);
 }
 
 .social-card--linkedin .social-card__icon img {
-  transform: scale(0.76);
+  transform: scale(0.66);
 }
 
 .social-card__name {
