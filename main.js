@@ -7,6 +7,8 @@ gsap.registerPlugin(ScrollToPlugin);
 const BREAKPOINT = 900;
 const SNAP_DUR = 0.9;
 const PLUS_Z = 99999;
+const MOBILE_SWIPE_MIN = 52;
+const MOBILE_SWIPE_LOCK_MS = 260;
 
 const SECTION = {
   HERO: "hero",
@@ -16,6 +18,14 @@ const SECTION = {
   CONTACT: "contact",
   NEWSLETTER: "newsletter",
 };
+const SECTION_ORDER = [
+  SECTION.HERO,
+  SECTION.ABOUT,
+  SECTION.PROJECTS,
+  SECTION.SOCIALS,
+  SECTION.CONTACT,
+  SECTION.NEWSLETTER,
+];
 
 const landingEl = document.getElementById("landing");
 const landingMarkEl = document.getElementById("landingMark");
@@ -27,10 +37,14 @@ const logoPrintFxEl = document.getElementById("logoPrintFx");
 
 const heroFrameEl = document.querySelector(".hero-frame");
 const aboutTitleEl = document.querySelector(".about-title");
+const aboutFrameEl = document.querySelector(".about-frame");
 const projectsFrameEl = document.querySelector(".projects-frame");
 const socialsTitleEl = document.querySelector(".socials-titlebox");
+const socialsFrameEl = document.querySelector(".socials-frame");
 const contactTitleEl = document.querySelector(".contact-titlebox");
+const contactFrameEl = document.querySelector(".contact-frame");
 const newsletterCardEl = document.querySelector(".newsletter-card");
+const newsletterFrameEl = document.querySelector(".newsletter-frame");
 //coming soon
 // const landingComingSoonEl = document.getElementById("landingComingSoon");
 const plusEls = {
@@ -50,7 +64,16 @@ let prevOverflowHtml = "";
 let prevOverflowBody = "";
 let prevPadRight = "";
 let mobileFrozenPlusTargets = null;
+let mobileTouchStartY = 0;
+let mobileTouchStartX = 0;
+let mobileTouchActive = false;
+let mobileTouchLockedAxis = "";
 const mobileMq = window.matchMedia(`(max-width: ${BREAKPOINT}px)`);
+
+function setActiveSectionState(section) {
+  document.documentElement.dataset.activeSection = section;
+  document.body.dataset.activeSection = section;
+}
 
 function isMobile() {
   return mobileMq.matches;
@@ -194,20 +217,38 @@ function getSectionScrollY(section) {
   if (!el) return window.scrollY;
 
   if (isMobile()) {
+    if (section === SECTION.PROJECTS) {
+      return Math.max(0, el.offsetTop);
+    }
+
     return Math.max(0, el.offsetTop - getHeaderOffset());
   }
 
   return el.offsetTop;
 }
 
-function getTargetFrameRect(section) {
-  if (section === SECTION.HERO) return heroFrameEl?.getBoundingClientRect() || null;
-  if (section === SECTION.ABOUT) return aboutTitleEl?.getBoundingClientRect() || null;
-  if (section === SECTION.PROJECTS) return projectsFrameEl?.getBoundingClientRect() || null;
-  if (section === SECTION.SOCIALS) return socialsTitleEl?.getBoundingClientRect() || null;
-  if (section === SECTION.CONTACT) return contactTitleEl?.getBoundingClientRect() || null;
-  if (section === SECTION.NEWSLETTER) return newsletterCardEl?.getBoundingClientRect() || null;
+function getPlusDockContainer(section) {
+  if (isMobile()) {
+    if (section === SECTION.HERO) return heroFrameEl;
+    if (section === SECTION.ABOUT) return aboutFrameEl;
+    if (section === SECTION.PROJECTS) return projectsFrameEl;
+    if (section === SECTION.SOCIALS) return socialsFrameEl;
+    if (section === SECTION.CONTACT) return contactFrameEl;
+    if (section === SECTION.NEWSLETTER) return newsletterFrameEl;
+    return null;
+  }
+
+  if (section === SECTION.HERO) return heroFrameEl;
+  if (section === SECTION.ABOUT) return aboutTitleEl;
+  if (section === SECTION.PROJECTS) return projectsFrameEl;
+  if (section === SECTION.SOCIALS) return socialsTitleEl;
+  if (section === SECTION.CONTACT) return contactTitleEl;
+  if (section === SECTION.NEWSLETTER) return newsletterCardEl;
   return null;
+}
+
+function getTargetFrameRect(section) {
+  return getPlusDockContainer(section)?.getBoundingClientRect() || null;
 }
 function rectAfterScroll(rectNow, dy) {
   return {
@@ -219,7 +260,12 @@ function rectAfterScroll(rectNow, dy) {
 }
 function settlePluses(section) {
   if (isMobile()) {
-    dockPlusesToSection(section);
+    if (!mobileFrozenPlusTargets) {
+      dockPlusesToSection(SECTION.HERO);
+      mobileFrozenPlusTargets = captureCurrentPlusTargets();
+    }
+
+    applyFrozenPlusTargets(mobileFrozenPlusTargets);
   } else {
     applyPlusesInstant(section);
   }
@@ -357,12 +403,26 @@ function goToSection(section) {
   const targetY = getSectionScrollY(section);
   const dy = targetY - startY;
 
+  if (isMobile()) {
+    snapBusy = true;
+    window.scrollTo(0, targetY);
+    snapState = section;
+    setActiveSectionState(section);
+    inputLockUntil = now() + MOBILE_SWIPE_LOCK_MS;
+    settlePluses(section);
+    requestAnimationFrame(() => {
+      snapBusy = false;
+    });
+    return;
+  }
+
   snapBusy = true;
   inputLockUntil = now() + 900;
 
   const tl = gsap.timeline({
 onComplete: () => {
   snapState = section;
+  setActiveSectionState(section);
   snapBusy = false;
   inputLockUntil = now() + 220;
   settlePluses(section);
@@ -398,6 +458,13 @@ function shouldSnapBackFromNewsletter() {
   if (!newsletterEl) return false;
 
   return window.scrollY <= newsletterEl.offsetTop + 32;
+}
+
+function shouldPinMobileSectionScroll() {
+  if (!isMobile() || snapBusy || !introPlayed) return false;
+
+  const targetY = getSectionScrollY(snapState);
+  return Math.abs(window.scrollY - targetY) > 2;
 }
 
 function bindDesktopWheelSnap() {
@@ -508,7 +575,37 @@ function bindScrollTriggers() {
       if (snapBusy) return;
 
       if (isMobile()) {
-        scrollToY(target.offsetTop - getHeaderOffset(), 0.9);
+        if (target.id === "hero") {
+          goToSection(SECTION.HERO);
+          return;
+        }
+
+        if (target.id === "about") {
+          goToSection(SECTION.ABOUT);
+          return;
+        }
+
+        if (target.id === "projects") {
+          goToSection(SECTION.PROJECTS);
+          return;
+        }
+
+        if (target.id === "socials") {
+          goToSection(SECTION.SOCIALS);
+          return;
+        }
+
+        if (target.id === "contact") {
+          goToSection(SECTION.CONTACT);
+          return;
+        }
+
+        if (target.id === "newsletter") {
+          goToSection(SECTION.NEWSLETTER);
+          return;
+        }
+
+        window.scrollTo(0, target.offsetTop - getHeaderOffset());
         return;
       }
 
@@ -547,6 +644,155 @@ function bindScrollTriggers() {
   });
 }
 
+function getNearestSection() {
+  const probeY = window.scrollY + getHeaderOffset() + window.innerHeight * 0.2;
+  let closest = SECTION.HERO;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  SECTION_ORDER.forEach((section) => {
+    const el = getSectionElement(section);
+    if (!el) return;
+
+    const distance = Math.abs(el.offsetTop - probeY);
+    if (distance < closestDistance) {
+      closest = section;
+      closestDistance = distance;
+    }
+  });
+
+  return closest;
+}
+
+function syncMobileSnapState() {
+  if (!isMobile() || !introPlayed) return;
+
+  const nextSection = getNearestSection();
+  if (nextSection === snapState) return;
+
+  snapState = nextSection;
+  settlePluses(nextSection);
+}
+
+function getAdjacentSection(section, direction) {
+  const index = SECTION_ORDER.indexOf(section);
+  if (index === -1) return section;
+
+  const nextIndex = Math.min(
+    Math.max(index + direction, 0),
+    SECTION_ORDER.length - 1,
+  );
+
+  return SECTION_ORDER[nextIndex];
+}
+
+function bindMobileSwipeSnap() {
+  if (document.documentElement.dataset.mobileSwipeBound === "1") return;
+  document.documentElement.dataset.mobileSwipeBound = "1";
+
+  const shouldIgnoreSwipeTarget = (target) =>
+    Boolean(
+      target?.closest(
+        "input, textarea, select, iframe, .module-body, .projects-desc",
+      ),
+    );
+
+  window.addEventListener(
+    "wheel",
+    (e) => {
+      if (!isMobile() || !introPlayed) return;
+      e.preventDefault();
+    },
+    { passive: false },
+  );
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (!isMobile() || snapBusy) return;
+      if (shouldPinMobileSectionScroll()) {
+        window.scrollTo(0, getSectionScrollY(snapState));
+        return;
+      }
+    },
+    { passive: true },
+  );
+
+  window.addEventListener(
+    "touchstart",
+    (e) => {
+      if (!isMobile() || !introPlayed) return;
+      if (e.touches.length !== 1) return;
+      if (shouldIgnoreSwipeTarget(e.target)) return;
+
+      const touch = e.touches[0];
+      mobileTouchStartY = touch.clientY;
+      mobileTouchStartX = touch.clientX;
+      mobileTouchActive = true;
+      mobileTouchLockedAxis = "";
+      syncMobileSnapState();
+    },
+    { passive: true },
+  );
+
+  window.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!isMobile() || !introPlayed) return;
+      if (e.touches.length !== 1) return;
+
+      if (shouldIgnoreSwipeTarget(e.target)) return;
+
+      const formTarget = e.target?.closest("input, textarea, select");
+      if (!formTarget) {
+        e.preventDefault();
+      }
+
+      if (!mobileTouchActive) return;
+
+      const touch = e.touches[0];
+      const dx = touch.clientX - mobileTouchStartX;
+      const dy = touch.clientY - mobileTouchStartY;
+
+      if (!mobileTouchLockedAxis) {
+        if (Math.abs(dy) > 8 || Math.abs(dx) > 8) {
+          mobileTouchLockedAxis = Math.abs(dy) > Math.abs(dx) ? "y" : "x";
+        }
+      }
+    },
+    { passive: false },
+  );
+
+  window.addEventListener(
+    "touchend",
+    (e) => {
+      if (!mobileTouchActive || !isMobile() || !introPlayed) return;
+
+      mobileTouchActive = false;
+
+      if (snapBusy || now() < inputLockUntil) return;
+      if (shouldIgnoreSwipeTarget(e.target)) return;
+
+      const touch = e.changedTouches?.[0];
+      if (!touch) return;
+
+      const deltaY = touch.clientY - mobileTouchStartY;
+      const deltaX = touch.clientX - mobileTouchStartX;
+
+      if (Math.abs(deltaY) < MOBILE_SWIPE_MIN) return;
+      if (Math.abs(deltaY) <= Math.abs(deltaX)) return;
+
+      syncMobileSnapState();
+
+      const direction = deltaY < 0 ? 1 : -1;
+      const nextSection = getAdjacentSection(snapState, direction);
+      if (nextSection === snapState) return;
+
+      goToSection(nextSection);
+    },
+    { passive: true },
+  );
+}
+
 function refreshResponsiveLayout() {
   syncLogoUrl();
   syncMountSize();
@@ -555,13 +801,10 @@ function refreshResponsiveLayout() {
   if (!introPlayed) return;
 
   if (isMobile()) {
-    if (mobileFrozenPlusTargets) {
-      applyFrozenPlusTargets(mobileFrozenPlusTargets);
-      return;
-    }
-
+    mobileFrozenPlusTargets = null;
     dockPlusesToSection(SECTION.HERO);
     mobileFrozenPlusTargets = captureCurrentPlusTargets();
+    applyFrozenPlusTargets(mobileFrozenPlusTargets);
     return;
   }
 
@@ -744,6 +987,7 @@ function playIntro() {
       gsap.set(logoMountEl, { opacity: 1 });
 settlePluses(SECTION.HERO);
 snapState = SECTION.HERO;
+setActiveSectionState(SECTION.HERO);
 
 if (isMobile()) {
   mobileFrozenPlusTargets = captureCurrentPlusTargets();
@@ -851,14 +1095,7 @@ requestAnimationFrame(() => {
 
 let resizeTimer = 0;
 function dockPlusesToSection(section) {
-  let container = null;
-
-  if (section === SECTION.HERO) container = heroFrameEl;
-  if (section === SECTION.ABOUT) container = aboutTitleEl;
-  if (section === SECTION.PROJECTS) container = projectsFrameEl;
-  if (section === SECTION.SOCIALS) container = socialsTitleEl;
-  if (section === SECTION.CONTACT) container = contactTitleEl;
-  if (section === SECTION.NEWSLETTER) container = newsletterCardEl;
+  const container = getPlusDockContainer(section);
 
   if (!container) return;
 
@@ -944,6 +1181,7 @@ async function boot() {
   bindMobileModules();
   bindMobileMenu();
   bindScrollTriggers();
+  bindMobileSwipeSnap();
   bindResizeHandling();
 
   requestAnimationFrame(() => {
