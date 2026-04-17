@@ -566,11 +566,7 @@ body.is-intro .mobile-menu-backdrop {
   .hero-dark__design {
     line-height: 0.82;
   }
-  .hero-dark__de,
-  .hero-dark__creatieve,
-  .hero-dark__design {
-    opacity: 0.5;
-  }
+
   .hero-word {
     font-size: clamp(64px, calc(var(--frameW) * 0.078), 150px);
     color: var(--orange);
