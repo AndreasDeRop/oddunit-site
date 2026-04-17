@@ -45,6 +45,7 @@ const contactTitleEl = document.querySelector(".contact-titlebox");
 const contactFrameEl = document.querySelector(".contact-frame");
 const newsletterCardEl = document.querySelector(".newsletter-card");
 const newsletterFrameEl = document.querySelector(".newsletter-frame");
+const mobileMenuEl = document.getElementById("mobileMenu");
 //coming soon
 // const landingComingSoonEl = document.getElementById("landingComingSoon");
 const plusEls = {
@@ -291,6 +292,22 @@ function captureCurrentPlusTargets() {
     bl: plusEls.bl ? plusEls.bl.getBoundingClientRect() : null,
     br: plusEls.br ? plusEls.br.getBoundingClientRect() : null,
   };
+}
+
+function getRectCornerTargets(rect) {
+  if (!rect) return null;
+
+  return {
+    tl: { left: rect.left, top: rect.top },
+    tr: { left: rect.right, top: rect.top },
+    bl: { left: rect.left, top: rect.bottom },
+    br: { left: rect.right, top: rect.bottom },
+  };
+}
+
+function getMobileMenuPlusTargets() {
+  if (!isMobile() || !mobileMenuEl) return null;
+  return getRectCornerTargets(mobileMenuEl.getBoundingClientRect());
 }
 
 function applyFrozenPlusTargets(targets) {
@@ -689,10 +706,12 @@ function bindMobileSwipeSnap() {
   if (document.documentElement.dataset.mobileSwipeBound === "1") return;
   document.documentElement.dataset.mobileSwipeBound = "1";
 
+  const isMenuOpen = () => document.body.classList.contains("menu-open");
+
   const shouldIgnoreSwipeTarget = (target) =>
     Boolean(
       target?.closest(
-        "input, textarea, select, iframe, .module-body, .projects-desc",
+        "input, textarea, select, iframe, .module-body, .projects-desc, .mobile-menu, .mobile-menu-backdrop, .menu-toggle",
       ),
     );
 
@@ -700,6 +719,7 @@ function bindMobileSwipeSnap() {
     "wheel",
     (e) => {
       if (!isMobile() || !introPlayed) return;
+      if (isMenuOpen()) return;
       e.preventDefault();
     },
     { passive: false },
@@ -709,6 +729,7 @@ function bindMobileSwipeSnap() {
     "scroll",
     () => {
       if (!isMobile() || snapBusy) return;
+      if (isMenuOpen()) return;
       if (shouldPinMobileSectionScroll()) {
         window.scrollTo(0, getSectionScrollY(snapState));
         return;
@@ -721,6 +742,7 @@ function bindMobileSwipeSnap() {
     "touchstart",
     (e) => {
       if (!isMobile() || !introPlayed) return;
+      if (isMenuOpen()) return;
       if (e.touches.length !== 1) return;
       if (shouldIgnoreSwipeTarget(e.target)) return;
 
@@ -738,6 +760,7 @@ function bindMobileSwipeSnap() {
     "touchmove",
     (e) => {
       if (!isMobile() || !introPlayed) return;
+      if (isMenuOpen()) return;
       if (e.touches.length !== 1) return;
 
       if (shouldIgnoreSwipeTarget(e.target)) return;
@@ -766,6 +789,10 @@ function bindMobileSwipeSnap() {
     "touchend",
     (e) => {
       if (!mobileTouchActive || !isMobile() || !introPlayed) return;
+      if (isMenuOpen()) {
+        mobileTouchActive = false;
+        return;
+      }
 
       mobileTouchActive = false;
 
@@ -804,7 +831,11 @@ function refreshResponsiveLayout() {
     mobileFrozenPlusTargets = null;
     dockPlusesToSection(SECTION.HERO);
     mobileFrozenPlusTargets = captureCurrentPlusTargets();
-    applyFrozenPlusTargets(mobileFrozenPlusTargets);
+    if (document.body.classList.contains("menu-open")) {
+      dockPlusesToContainer(mobileMenuEl);
+    } else {
+      applyFrozenPlusTargets(mobileFrozenPlusTargets);
+    }
     return;
   }
 
@@ -861,6 +892,9 @@ function bindMobileMenu() {
     menuToggle.setAttribute("aria-expanded", "true");
     mobileMenu.setAttribute("aria-hidden", "false");
     mobileMenuBackdrop.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(() => {
+      dockPlusesToContainer(mobileMenu);
+    });
   };
 
   const closeMenu = () => {
@@ -869,6 +903,7 @@ function bindMobileMenu() {
     menuToggle.setAttribute("aria-expanded", "false");
     mobileMenu.setAttribute("aria-hidden", "true");
     mobileMenuBackdrop.setAttribute("aria-hidden", "true");
+    applyFrozenPlusTargets(mobileFrozenPlusTargets);
   };
 
   const toggleMenu = () => {
@@ -1096,6 +1131,11 @@ requestAnimationFrame(() => {
 let resizeTimer = 0;
 function dockPlusesToSection(section) {
   const container = getPlusDockContainer(section);
+
+  dockPlusesToContainer(container);
+}
+
+function dockPlusesToContainer(container) {
 
   if (!container) return;
 
