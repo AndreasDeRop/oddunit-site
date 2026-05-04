@@ -17,6 +17,7 @@ const SECTION = {
   SOCIALS: "socials",
   CONTACT: "contact",
   NEWSLETTER: "newsletter",
+  FAQ: "faq",
 };
 const SECTION_ORDER = [
   SECTION.HERO,
@@ -25,6 +26,7 @@ const SECTION_ORDER = [
   SECTION.SOCIALS,
   SECTION.CONTACT,
   SECTION.NEWSLETTER,
+  SECTION.FAQ,
 ];
 
 const landingEl = document.getElementById("landing");
@@ -45,6 +47,8 @@ const contactTitleEl = document.querySelector(".contact-titlebox");
 const contactFrameEl = document.querySelector(".contact-frame");
 const newsletterCardEl = document.querySelector(".newsletter-card");
 const newsletterFrameEl = document.querySelector(".newsletter-frame");
+const faqTitleEl = document.querySelector(".faq-titlebox");
+const faqFrameEl = document.querySelector(".faq-frame");
 const mobileMenuEl = document.getElementById("mobileMenu");
 //coming soon
 // const landingComingSoonEl = document.getElementById("landingComingSoon");
@@ -69,6 +73,8 @@ let mobileTouchStartY = 0;
 let mobileTouchStartX = 0;
 let mobileTouchActive = false;
 let mobileTouchLockedAxis = "";
+let desktopSectionSyncRaf = 0;
+let desktopPlusSyncTween = null;
 const mobileMq = window.matchMedia(`(max-width: ${BREAKPOINT}px)`);
 
 function setActiveSectionState(section) {
@@ -210,6 +216,7 @@ function getSectionElement(section) {
   if (section === SECTION.SOCIALS) return document.getElementById("socials");
   if (section === SECTION.CONTACT) return document.getElementById("contact");
   if (section === SECTION.NEWSLETTER) return document.getElementById("newsletter");
+  if (section === SECTION.FAQ) return document.getElementById("faq");
   return null;
 }
 
@@ -236,6 +243,7 @@ function getPlusDockContainer(section) {
     if (section === SECTION.SOCIALS) return socialsFrameEl;
     if (section === SECTION.CONTACT) return contactFrameEl;
     if (section === SECTION.NEWSLETTER) return newsletterFrameEl;
+    if (section === SECTION.FAQ) return faqFrameEl;
     return null;
   }
 
@@ -245,6 +253,7 @@ function getPlusDockContainer(section) {
   if (section === SECTION.SOCIALS) return socialsTitleEl;
   if (section === SECTION.CONTACT) return contactTitleEl;
   if (section === SECTION.NEWSLETTER) return newsletterCardEl;
+  if (section === SECTION.FAQ) return faqTitleEl;
   return null;
 }
 
@@ -477,8 +486,16 @@ function shouldSnapBackFromNewsletter() {
   return window.scrollY <= newsletterEl.offsetTop + 32;
 }
 
+function shouldSnapBackFromFaq() {
+  const faqEl = getSectionElement(SECTION.FAQ);
+  if (!faqEl) return false;
+
+  return window.scrollY <= faqEl.offsetTop + 32;
+}
+
 function shouldPinMobileSectionScroll() {
   if (!isMobile() || snapBusy || !introPlayed) return false;
+  if (snapState === SECTION.FAQ) return false;
 
   const targetY = getSectionScrollY(snapState);
   return Math.abs(window.scrollY - targetY) > 2;
@@ -502,7 +519,8 @@ function bindDesktopWheelSnap() {
           (snapState !== SECTION.PROJECTS || shouldSnapBackFromProjects()) &&
           (snapState !== SECTION.SOCIALS || shouldSnapBackFromSocials()) &&
           (snapState !== SECTION.CONTACT || shouldSnapBackFromContact()) &&
-          (snapState !== SECTION.NEWSLETTER || shouldSnapBackFromNewsletter())
+          (snapState !== SECTION.NEWSLETTER || shouldSnapBackFromNewsletter()) &&
+          (snapState !== SECTION.FAQ || shouldSnapBackFromFaq())
         ) {
           e.preventDefault();
         }
@@ -564,8 +582,21 @@ function bindDesktopWheelSnap() {
       if (snapState === SECTION.NEWSLETTER) {
         e.preventDefault();
 
+        if (e.deltaY > 0) {
+          goToSection(SECTION.FAQ);
+          return;
+        }
+
         if (e.deltaY < 0 && shouldSnapBackFromNewsletter()) {
           goToSection(SECTION.CONTACT);
+        }
+        return;
+      }
+
+      if (snapState === SECTION.FAQ) {
+        if (e.deltaY < 0 && shouldSnapBackFromFaq()) {
+          e.preventDefault();
+          goToSection(SECTION.NEWSLETTER);
         }
       }
     },
@@ -622,6 +653,11 @@ function bindScrollTriggers() {
           return;
         }
 
+        if (target.id === "faq") {
+          goToSection(SECTION.FAQ);
+          return;
+        }
+
         window.scrollTo(0, target.offsetTop - getHeaderOffset());
         return;
       }
@@ -653,6 +689,11 @@ function bindScrollTriggers() {
 
       if (target.id === "newsletter") {
         goToSection(SECTION.NEWSLETTER);
+        return;
+      }
+
+      if (target.id === "faq") {
+        goToSection(SECTION.FAQ);
         return;
       }
 
@@ -690,6 +731,32 @@ function syncMobileSnapState() {
   settlePluses(nextSection);
 }
 
+function syncDesktopSectionState() {
+  if (isMobile() || !introPlayed || snapBusy) return;
+
+  const nextSection = getNearestSection();
+  if (nextSection === snapState) return;
+
+  snapState = nextSection;
+  setActiveSectionState(nextSection);
+
+  if (!plusEls.tl || !plusEls.tr || !plusEls.bl || !plusEls.br) {
+    return;
+  }
+
+  desktopPlusSyncTween?.kill();
+
+  const tl = gsap.timeline({
+    onComplete: () => {
+      settlePluses(nextSection);
+      desktopPlusSyncTween = null;
+    },
+  });
+
+  animatePlusesToSection(tl, nextSection, 0, 0.4, 0);
+  desktopPlusSyncTween = tl;
+}
+
 function getAdjacentSection(section, direction) {
   const index = SECTION_ORDER.indexOf(section);
   if (index === -1) return section;
@@ -711,7 +778,7 @@ function bindMobileSwipeSnap() {
   const shouldIgnoreSwipeTarget = (target) =>
     Boolean(
       target?.closest(
-        "input, textarea, select, iframe, .module-body, .projects-desc, .mobile-menu, .mobile-menu-backdrop, .menu-toggle",
+        "input, textarea, select, iframe, .module-body, .projects-desc, .faq-list, .faq-item, .faq-answer, .mobile-menu, .mobile-menu-backdrop, .menu-toggle",
       ),
     );
 
@@ -720,6 +787,7 @@ function bindMobileSwipeSnap() {
     (e) => {
       if (!isMobile() || !introPlayed) return;
       if (isMenuOpen()) return;
+      if (e.target?.closest(".faq-list")) return;
       e.preventDefault();
     },
     { passive: false },
@@ -815,6 +883,28 @@ function bindMobileSwipeSnap() {
       if (nextSection === snapState) return;
 
       goToSection(nextSection);
+    },
+    { passive: true },
+  );
+}
+
+function bindDesktopSectionSync() {
+  if (document.documentElement.dataset.desktopSectionSyncBound === "1") return;
+  document.documentElement.dataset.desktopSectionSyncBound = "1";
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (isMobile() || snapBusy || !introPlayed) return;
+
+      if (desktopSectionSyncRaf) {
+        cancelAnimationFrame(desktopSectionSyncRaf);
+      }
+
+      desktopSectionSyncRaf = requestAnimationFrame(() => {
+        desktopSectionSyncRaf = 0;
+        syncDesktopSectionState();
+      });
     },
     { passive: true },
   );
@@ -1203,6 +1293,33 @@ function bindResizeHandling() {
   });
 }
 
+function bindFaqAccordion() {
+  const faqItems = Array.from(document.querySelectorAll(".faq-item"));
+  if (!faqItems.length) return;
+
+  faqItems.forEach((item) => {
+    const trigger = item.querySelector(".faq-question");
+    if (!trigger || trigger.dataset.bound === "1") return;
+
+    trigger.dataset.bound = "1";
+
+    trigger.addEventListener("click", (e) => {
+      e.preventDefault();
+      const willOpen = !item.classList.contains("is-open");
+
+      faqItems.forEach((other) => {
+        other.classList.remove("is-open");
+        other.querySelector(".faq-question")?.setAttribute("aria-expanded", "false");
+      });
+
+      if (willOpen) {
+        item.classList.add("is-open");
+        trigger.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+}
+
 async function boot() {
   try {
     await brandLogoEl?.decode();
@@ -1222,7 +1339,9 @@ async function boot() {
   bindMobileMenu();
   bindScrollTriggers();
   bindMobileSwipeSnap();
+  bindDesktopSectionSync();
   bindResizeHandling();
+  bindFaqAccordion();
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
