@@ -1,30 +1,34 @@
 import * as THREE from "https://esm.sh/three@0.160.0";
 import { GLTFLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "https://esm.sh/three@0.160.0/examples/jsm/libs/meshopt_decoder.module.js";
 import { RoomEnvironment } from "https://esm.sh/three@0.160.0/examples/jsm/environments/RoomEnvironment.js";
 import gsap from "https://esm.sh/gsap@3.12.2";
 
 const BREAKPOINT = 900;
+const DESKTOP_PIXEL_RATIO = 1.25;
+const ASSET_VERSION = "20260506-project-layout";
+const INITIAL_MODEL_ROTATION = 0;
+const MODEL_CAMERA_PADDING = 1.25;
+const MODEL_SCALE_DESKTOP = 0.9;
+const MODEL_SCALE_MOBILE = 1;
+const IDLE_ROTATION_SPEED = (Math.PI * 2) / 22;
+const IDLE_ROTATION_FPS = 24;
+const IDLE_ROTATION_START_DELAY = 900;
 
 const DROPS = [
   {
     badge: "DROP 01",
-    edition: "01/200",
-    title: "ProtoBoy V3",
+    title: "FONS",
     desc:
-      "De nieuwste Art Toy. Een strakke afwerking en een stoere uitstraling.Wereldwijd in beperkte oplage verkrijgbaar. Met liefde gemaakt in België. Ontworpen door Odd Unit. Gegoten in hars. Met de hand afgewerkt. Elk stuk is uniek.",
+      "Dit is Fons. Fons heeft net een dikke karper gevangen, azo een klet péken! Wil je graag jouw eigen Fons? Goed nieuws! Wij brengen hem binnenkort uit als onze eerste resin Art Toy, handgemaakt in ons atelier.",
     link: "#",
-    model: "./projects/toy1.glb",
-  },
-  {
-    badge: "DROP 02",
-    edition: "02/200",
-    title: "ProtoBoy V4",
-    desc:
-      "Second form unlocked. Same vibe, new silhouette. Limited run. Refined geometry, sharper body language and a more aggressive stance.",
-    link: "#",
-    model: "./projects/toy2.glb",
-  },
+    available: false,
+    ctaLabel: "COMING SOON",
+    model: `./projects/toy1.glb?v=${ASSET_VERSION}`,
+  }
 ];
+
+const HAS_MULTIPLE_DROPS = DROPS.length > 1;
 
 const canvas = document.getElementById("projectsCanvas");
 const canvasCell = document.querySelector(".projects-canvas-cell");
@@ -41,6 +45,7 @@ function initProjectsScene() {
   const titleEl = document.getElementById("projectTitle");
   const descEl = document.getElementById("projectDesc");
   const buyEl = document.getElementById("projectBuy");
+  const dotsEl = document.getElementById("projectDots");
   const dotEls = Array.from(document.querySelectorAll(".projects-dot"));
 
   const tickerTrack = document.getElementById("projectsTickerTrack");
@@ -53,7 +58,7 @@ function initProjectsScene() {
     powerPreference: "high-performance",
   });
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, DESKTOP_PIXEL_RATIO));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.85;
@@ -78,9 +83,11 @@ function initProjectsScene() {
   scene.add(rim);
 
   const root = new THREE.Group();
+  root.rotation.y = INITIAL_MODEL_ROTATION;
   scene.add(root);
 
   const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
 
   let toy1 = null;
   let toy2 = null;
@@ -90,15 +97,15 @@ function initProjectsScene() {
 
   let typingTween = null;
   let tickerTween = null;
-  let idleRotateTween = null;
-  let autoplayCall = null;
   let visibilityObserver = null;
 
   let renderQueued = false;
+  let sceneVisible = false;
+  let idleRotationRaf = 0;
+  let idleRotationDelayTimer = 0;
+  let lastIdleRotationTs = 0;
   let baseTickerNodes = [];
   let resizeTimer = 0;
-  let sceneActive = false;
-  let rafId = 0;
 
   const typedOnce = [false, false];
 
@@ -106,7 +113,9 @@ function initProjectsScene() {
     return window.matchMedia(`(max-width: ${BREAKPOINT}px)`).matches;
   }
 
-  if (nextBtn && nextBtn.dataset.bound !== "1") {
+  syncProjectControls();
+
+  if (nextBtn && HAS_MULTIPLE_DROPS && nextBtn.dataset.bound !== "1") {
     nextBtn.dataset.bound = "1";
     nextBtn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -115,8 +124,28 @@ function initProjectsScene() {
     });
   }
 
+  function syncProjectControls() {
+    if (nextBtn) {
+      nextBtn.hidden = !HAS_MULTIPLE_DROPS;
+      nextBtn.disabled = !HAS_MULTIPLE_DROPS;
+      nextBtn.setAttribute("aria-hidden", String(!HAS_MULTIPLE_DROPS));
+    }
+
+    if (dotsEl) {
+      dotsEl.hidden = !HAS_MULTIPLE_DROPS;
+      dotsEl.setAttribute("aria-hidden", String(!HAS_MULTIPLE_DROPS));
+    }
+
+    dotEls.forEach((dot, index) => {
+      const enabled = HAS_MULTIPLE_DROPS && index < DROPS.length;
+
+      dot.hidden = !enabled;
+      dot.disabled = !enabled;
+      dot.setAttribute("aria-hidden", String(!enabled));
+    });
+  }
+
   function requestRender() {
-    if (sceneActive) return;
     if (renderQueued) return;
 
     renderQueued = true;
@@ -127,33 +156,62 @@ function initProjectsScene() {
     });
   }
 
-  function renderScene() {
-    renderer.render(scene, camera);
-  }
-
-  function tick() {
-    if (!sceneActive) return;
-    renderScene();
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function startScene() {
-    if (sceneActive) return;
-    sceneActive = true;
-    tick();
-  }
-
-  function stopScene() {
-    sceneActive = false;
-
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = 0;
+  function stopIdleRotation() {
+    if (idleRotationDelayTimer) {
+      window.clearTimeout(idleRotationDelayTimer);
+      idleRotationDelayTimer = 0;
     }
+
+    if (!idleRotationRaf) return;
+
+    cancelAnimationFrame(idleRotationRaf);
+    idleRotationRaf = 0;
+    lastIdleRotationTs = 0;
+  }
+
+  function idleRotationTick(ts) {
+    if (!sceneVisible || !toy1) {
+      stopIdleRotation();
+      return;
+    }
+
+    if (!lastIdleRotationTs) {
+      lastIdleRotationTs = ts;
+    }
+
+    const elapsed = ts - lastIdleRotationTs;
+    const minFrameTime = 1000 / IDLE_ROTATION_FPS;
+
+    if (elapsed >= minFrameTime) {
+      root.rotation.y += IDLE_ROTATION_SPEED * (elapsed / 1000);
+      lastIdleRotationTs = ts;
+      renderer.render(scene, camera);
+    }
+
+    idleRotationRaf = requestAnimationFrame(idleRotationTick);
+  }
+
+  function startIdleRotation(delay = 0) {
+    if (idleRotationRaf || idleRotationDelayTimer || !sceneVisible || !toy1) {
+      return;
+    }
+
+    if (delay > 0) {
+      idleRotationDelayTimer = window.setTimeout(() => {
+        idleRotationDelayTimer = 0;
+        startIdleRotation();
+      }, delay);
+
+      return;
+    }
+
+    lastIdleRotationTs = 0;
+    idleRotationRaf = requestAnimationFrame(idleRotationTick);
   }
 
   function updateDots(idx) {
     dotEls.forEach((dot, i) => {
+      if (i >= DROPS.length) return;
       dot.classList.toggle("is-active", i === idx);
     });
   }
@@ -161,8 +219,30 @@ function initProjectsScene() {
   function setCopyStatic(idx) {
     const item = DROPS[idx];
     badgeEl.textContent = item.badge;
-    editionEl.textContent = item.edition;
-    buyEl.href = item.link;
+
+    const editionItem = editionEl?.closest(".projects-meta-item");
+    if (editionEl && editionItem) {
+      const hasEdition = Boolean(item.edition);
+      editionEl.textContent = item.edition || "";
+      editionItem.hidden = !hasEdition;
+    }
+
+    if (buyEl) {
+      const isAvailable = item.available !== false;
+
+      buyEl.textContent =
+        item.ctaLabel || (isAvailable ? "KOOP NU" : "BINNENKORT");
+      buyEl.classList.toggle("is-disabled", !isAvailable);
+      buyEl.setAttribute("aria-disabled", String(!isAvailable));
+
+      if (isAvailable) {
+        buyEl.href = item.link;
+        buyEl.tabIndex = 0;
+      } else {
+        buyEl.removeAttribute("href");
+        buyEl.tabIndex = -1;
+      }
+    }
   }
 
   function setTextInstant(idx) {
@@ -277,13 +357,18 @@ function initProjectsScene() {
   }
 
   function showToy(idx) {
-    if (!toy1 || !toy2) return;
+    if (!toy1) return;
+
     toy1.visible = idx === 0;
-    toy2.visible = idx === 1;
+
+    if (toy2) {
+      toy2.visible = idx === 1;
+    }
   }
 
   function setActiveProject(idx, useTyping = false) {
-    if (!toy1 || !toy2) return;
+    if (!toy1) return;
+    if (idx === 1 && !toy2) return;
 
     activeIdx = idx;
     showToy(idx);
@@ -308,15 +393,17 @@ function initProjectsScene() {
   }
 
   function updateLayout() {
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile() ? 1 : 1.5));
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, isMobile() ? 1 : DESKTOP_PIXEL_RATIO),
+    );
     resizeRenderer();
 
-    if (!toy1 || !toy2) {
+    if (!toy1) {
       requestRender();
       return;
     }
 
-    root.scale.setScalar(isMobile() ? 0.9 : 0.84);
+    root.scale.setScalar(isMobile() ? MODEL_SCALE_MOBILE : MODEL_SCALE_DESKTOP);
     camera.position.z = isMobile() ? baseCamZ * 1.02 : baseCamZ;
     camera.position.y = isMobile() ? heightHint * 0.08 : heightHint * 0.55;
     camera.lookAt(0, getLookY(), 0);
@@ -397,60 +484,20 @@ function initProjectsScene() {
     });
   }
 
-  function startIdleRotate() {
-    if (idleRotateTween) return;
-
-    idleRotateTween = gsap.to(root.rotation, {
-      y: `+=${Math.PI * 2}`,
-      duration: isMobile() ? 8 : 10,
-      ease: "none",
-      repeat: -1,
-    });
-  }
-
-  function stopIdleRotate() {
-    if (!idleRotateTween) return;
-    idleRotateTween.kill();
-    idleRotateTween = null;
-  }
-
-  function restartAutoplay() {
-    if (autoplayCall) {
-      autoplayCall.kill();
-      autoplayCall = null;
-    }
-
-    if (isMobile()) return;
-
-    autoplayCall = gsap.delayedCall(4.5, () => {
-      goToNextProject();
-    });
-  }
-
-  function stopAutoplay() {
-    if (!autoplayCall) return;
-    autoplayCall.kill();
-    autoplayCall = null;
-  }
-
   function syncProjectsMode() {
-    stopIdleRotate();
-    stopAutoplay();
     gsap.killTweensOf(root.rotation);
-
-    startIdleRotate();
-
-    if (!isMobile()) {
-      restartAutoplay();
-    }
+    requestRender();
+    startIdleRotation();
   }
 
   function goToNextProject() {
+    if (!HAS_MULTIPLE_DROPS || !toy2) return;
+
     const nextIdx = (activeIdx + 1) % DROPS.length;
 
     setActiveProject(nextIdx, true);
 
-    stopIdleRotate();
+    stopIdleRotation();
     gsap.killTweensOf(root.rotation);
 
     gsap.to(root.rotation, {
@@ -458,9 +505,10 @@ function initProjectsScene() {
       duration: 0.6,
       ease: "power2.out",
       overwrite: true,
+      onUpdate: requestRender,
       onComplete: () => {
-        startIdleRotate();
-        restartAutoplay();
+        startIdleRotation();
+        requestRender();
       },
     });
   }
@@ -473,15 +521,17 @@ function initProjectsScene() {
     visibilityObserver = new IntersectionObserver(
       (entries) => {
         const visible = entries[0]?.isIntersecting;
+        sceneVisible = Boolean(visible);
 
         if (visible) {
-          startScene();
-          startIdleRotate();
-          if (!isMobile()) restartAutoplay();
+          if (activeIdx === 0) {
+            root.rotation.y = INITIAL_MODEL_ROTATION;
+          }
+
+          requestRender();
+          startIdleRotation(IDLE_ROTATION_START_DELAY);
         } else {
-          stopScene();
-          stopIdleRotate();
-          stopAutoplay();
+          stopIdleRotation();
         }
       },
       { threshold: 0.2 },
@@ -515,47 +565,51 @@ function initProjectsScene() {
   window.addEventListener("resize", () => scheduleRefresh(120));
   window.addEventListener("orientationchange", () => scheduleRefresh(220));
 
-  Promise.all([loader.loadAsync(DROPS[0].model), loader.loadAsync(DROPS[1].model)]).then(
-    ([g1, g2]) => {
-      toy1 = g1.scene;
+  loader.loadAsync(DROPS[0].model).then((g1) => {
+    toy1 = g1.scene;
+
+    cloneMaterials(toy1);
+    prepToy(toy1);
+
+    const h1 = getHeight(toy1);
+    heightHint = h1 > 0 ? h1 : 1.8;
+
+    root.add(toy1);
+    fitCameraTo(toy1, MODEL_CAMERA_PADDING, heightHint);
+    baseCamZ = camera.position.z;
+
+    activeIdx = 0;
+    showToy(0);
+    setModelOpaque(toy1);
+
+    renderCopy(0, false);
+    updateDots(0);
+    typedOnce[0] = true;
+    updateLayout();
+    syncProjectsMode();
+    setupSceneVisibility();
+    rebuildTicker();
+    requestRender();
+
+    if (!HAS_MULTIPLE_DROPS) return;
+
+    loader.loadAsync(DROPS[1].model).then((g2) => {
       toy2 = g2.scene;
 
-      cloneMaterials(toy1);
       cloneMaterials(toy2);
-
-      prepToy(toy1);
       prepToy(toy2);
 
-      const h1 = getHeight(toy1);
       const h2 = getHeight(toy2);
-
-      heightHint = h1 > 0 ? h1 : 1.8;
-
       if (h1 > 0 && h2 > 0) {
         toy2.scale.multiplyScalar(h1 / h2);
         groundY(toy2);
       }
 
-      root.add(toy1);
+      toy2.visible = activeIdx === 1;
       root.add(toy2);
-
-      fitCameraTo(root, 1.35, heightHint);
-      baseCamZ = camera.position.z;
-
-      activeIdx = 0;
-      showToy(0);
-      setModelOpaque(toy1);
       setModelOpaque(toy2);
-
-      renderCopy(0, false);
-      updateDots(0);
-      typedOnce[0] = true;
-
       updateLayout();
-      syncProjectsMode();
-      setupSceneVisibility();
-      rebuildTicker();
       requestRender();
-    },
-  );
+    });
+  });
 }

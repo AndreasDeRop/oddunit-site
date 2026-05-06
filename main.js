@@ -1,10 +1,10 @@
 import gsap from "https://esm.sh/gsap@3.12.2";
 import ScrollToPlugin from "https://esm.sh/gsap@3.12.2/ScrollToPlugin";
-import "./projects/projects.js";
 
 gsap.registerPlugin(ScrollToPlugin);
 
 const BREAKPOINT = 900;
+const APP_ASSET_VERSION = "20260506-project-layout";
 const SNAP_DUR = 0.9;
 const PLUS_Z = 99999;
 const MOBILE_SWIPE_MIN = 52;
@@ -34,6 +34,7 @@ const landingMarkEl = document.getElementById("landingMark");
 const landingPlusEls = Array.from(document.querySelectorAll(".landing-plus"));
 
 const brandLogoEl = document.getElementById("brandLogo");
+const introLogoEl = document.getElementById("introLogo");
 const logoMountEl = document.getElementById("logoMount");
 const logoPrintFxEl = document.getElementById("logoPrintFx");
 
@@ -75,7 +76,19 @@ let mobileTouchActive = false;
 let mobileTouchLockedAxis = "";
 let desktopSectionSyncRaf = 0;
 let desktopPlusSyncTween = null;
+let projectsScenePromise = null;
 const mobileMq = window.matchMedia(`(max-width: ${BREAKPOINT}px)`);
+
+function loadProjectsScene() {
+  if (!projectsScenePromise) {
+    projectsScenePromise = import(`./projects/projects.js?v=${APP_ASSET_VERSION}`).catch((error) => {
+      projectsScenePromise = null;
+      throw error;
+    });
+  }
+
+  return projectsScenePromise;
+}
 
 function setActiveSectionState(section) {
   document.documentElement.dataset.activeSection = section;
@@ -148,11 +161,24 @@ function lockScroll(lock) {
 }
 
 function syncLogoUrl() {
-  if (!brandLogoEl) return;
-  const src = brandLogoEl.currentSrc || brandLogoEl.src;
+  const brandSrc = brandLogoEl?.currentSrc || brandLogoEl?.src || "";
+  const introSrc = introLogoEl?.currentSrc || introLogoEl?.src || brandSrc;
 
-  if (logoPrintFxEl) logoPrintFxEl.style.setProperty("--logo-url", `url("${src}")`);
-  if (logoMountEl) logoMountEl.style.setProperty("--logo-url", `url("${src}")`);
+  setPrintLogoSource(introSrc);
+
+  if (logoMountEl && brandSrc) {
+    logoMountEl.style.setProperty("--logo-url", `url("${brandSrc}")`);
+  }
+}
+
+function setPrintLogoSource(src) {
+  if (logoPrintFxEl && src) {
+    logoPrintFxEl.style.setProperty("--logo-url", `url("${src}")`);
+  }
+}
+
+function getPrintLogoEl() {
+  return introLogoEl || brandLogoEl;
 }
 
 function syncMountSize() {
@@ -170,11 +196,18 @@ function syncMountSize() {
       `${brandLogoEl.naturalWidth} / ${brandLogoEl.naturalHeight}`,
     );
   }
+
+  if (introLogoEl?.naturalWidth > 0 && introLogoEl?.naturalHeight > 0) {
+    document.documentElement.style.setProperty(
+      "--intro-logo-ratio",
+      `${introLogoEl.naturalWidth} / ${introLogoEl.naturalHeight}`,
+    );
+  }
 }
 
-function syncPrintFxSize() {
-  if (!logoPrintFxEl || !brandLogoEl) return;
-  const r = brandLogoEl.getBoundingClientRect();
+function syncPrintFxSize(sourceLogoEl = getPrintLogoEl()) {
+  if (!logoPrintFxEl || !sourceLogoEl) return;
+  const r = sourceLogoEl.getBoundingClientRect();
   logoPrintFxEl.style.width = `${Math.max(1, r.width)}px`;
   logoPrintFxEl.style.height = `${Math.max(1, r.height)}px`;
 }
@@ -197,11 +230,19 @@ function resetStates() {
     scale: 1,
     clearProps: "transform",
   });
+  gsap.set(introLogoEl, {
+    opacity: 0,
+    x: 0,
+    y: 0,
+    scale: 1,
+    clearProps: "transform",
+  });
 
   gsap.set(logoPrintFxEl, {
     opacity: 0,
     "--py": 0,
     "--hx": 0,
+    "--studioCut": "0%",
     x: 0,
     y: 0,
     scale: 1,
@@ -424,6 +465,10 @@ function goToSection(section) {
   if (snapBusy || !introPlayed) return;
   if (!plusEls.tl || !plusEls.tr || !plusEls.bl || !plusEls.br) return;
   if (section === snapState) return;
+
+  if (section === SECTION.PROJECTS) {
+    loadProjectsScene();
+  }
 
   const startY = window.scrollY;
   const targetY = getSectionScrollY(section);
@@ -1021,8 +1066,8 @@ function bindMobileMenu() {
   }
 
   mobileMenuLinks.forEach((link) => {
-    if (link.dataset.bound === "1") return;
-    link.dataset.bound = "1";
+    if (link.dataset.mobileMenuBound === "1") return;
+    link.dataset.mobileMenuBound = "1";
     link.addEventListener("click", closeMenu);
   });
 
@@ -1054,6 +1099,7 @@ function playIntro() {
   if (introPlayed) return;
   introPlayed = true;
 
+  document.body.classList.remove("intro-complete");
   document.body.classList.add("is-intro");
   lockScroll(true);
   resetStates();
@@ -1068,9 +1114,10 @@ function playIntro() {
   syncMountSize();
   syncPrintFxSize();
 
+  const printLogoEl = getPrintLogoEl();
   const landingRect = landingMarkEl.getBoundingClientRect();
   const mountRect = logoMountEl.getBoundingClientRect();
-  const baseRect = brandLogoEl.getBoundingClientRect();
+  const baseRect = printLogoEl.getBoundingClientRect();
 
   const startScale = landingRect.width / Math.max(1, baseRect.width);
   const startW = baseRect.width * startScale;
@@ -1093,6 +1140,7 @@ function playIntro() {
     transformOrigin: "top left",
     "--py": 0,
     "--hx": 0,
+    "--studioCut": "0%",
   });
 
   const LAYERS = 25;
@@ -1100,31 +1148,50 @@ function playIntro() {
   const PRINT_DUR = LAYERS * TIME_PER_LAYER;
   const MOVE_DUR = 1.4;
   const MOVE_START = PRINT_DUR;
-  const XFADE = MOVE_START + Math.max(0, MOVE_DUR - 0.12);
+  const STUDIO_CUT_START = MOVE_START + 0.28;
+  const INTRO_LAND = MOVE_START + MOVE_DUR;
+  const UI_FADE_DUR = 0.18;
+  const UI_APPEAR = INTRO_LAND - UI_FADE_DUR;
 
   logoPrintFxEl.style.setProperty("--layerH", `${100 / LAYERS}%`);
 
   const printState = { t: 0 };
+  let introUiShown = false;
+  let introFinished = false;
+
+  function showIntroUi() {
+    if (introUiShown) return;
+    introUiShown = true;
+    document.body.classList.remove("is-intro");
+  }
+
+  function finishIntro() {
+    if (introFinished) return;
+    introFinished = true;
+
+    showIntroUi();
+    document.body.classList.add("intro-complete");
+    gsap.set(logoPrintFxEl, { opacity: 0 });
+    gsap.set(logoMountEl, { opacity: 1 });
+    settlePluses(SECTION.HERO);
+    snapState = SECTION.HERO;
+    setActiveSectionState(SECTION.HERO);
+
+    if (isMobile()) {
+      mobileFrozenPlusTargets = captureCurrentPlusTargets();
+    }
+
+    lockScroll(false);
+    bindDesktopWheelSnap();
+
+    requestAnimationFrame(() => {
+      refreshResponsiveLayout();
+    });
+  }
 
   const tl = gsap.timeline({
     onComplete: () => {
-      gsap.set(logoPrintFxEl, { opacity: 0 });
-      gsap.set(logoMountEl, { opacity: 1 });
-settlePluses(SECTION.HERO);
-snapState = SECTION.HERO;
-setActiveSectionState(SECTION.HERO);
-
-if (isMobile()) {
-  mobileFrozenPlusTargets = captureCurrentPlusTargets();
-}
-
-document.body.classList.remove("is-intro");
-lockScroll(false);
-bindDesktopWheelSnap();
-
-requestAnimationFrame(() => {
-  refreshResponsiveLayout();
-});
+      finishIntro();
     },
 
 //coming soon
@@ -1189,6 +1256,16 @@ requestAnimationFrame(() => {
     MOVE_START,
   );
 
+  tl.to(
+    logoPrintFxEl,
+    {
+      "--studioCut": "20%",
+      duration: 0.32,
+      ease: "power2.out",
+    },
+    STUDIO_CUT_START,
+  );
+
   landingPlusEls.forEach((el) => {
     const corner = el.getAttribute("data-corner");
     const target = heroTargets?.[corner];
@@ -1213,9 +1290,11 @@ requestAnimationFrame(() => {
     MOVE_START + 0.05,
   );
 
-  tl.to(landingPlusEls, { opacity: 0, duration: 0.18, ease: "none" }, XFADE);
-  tl.to(Object.values(plusEls), { opacity: 1, duration: 0.18, ease: "none" }, XFADE);
-  tl.to(landingEl, { autoAlpha: 0, duration: 0.12, ease: "none" }, XFADE + 0.18);
+  tl.call(showIntroUi, null, UI_APPEAR);
+  tl.to(landingPlusEls, { opacity: 0, duration: UI_FADE_DUR, ease: "none" }, UI_APPEAR);
+  tl.to(Object.values(plusEls), { opacity: 1, duration: UI_FADE_DUR, ease: "none" }, UI_APPEAR);
+  tl.call(finishIntro, null, INTRO_LAND);
+  tl.to(landingEl, { autoAlpha: 0, duration: 0.1, ease: "none" }, INTRO_LAND);
 }
 
 let resizeTimer = 0;
@@ -1320,10 +1399,41 @@ function bindFaqAccordion() {
   });
 }
 
+function setupProjectsLazyLoader() {
+  const projectsEl = getSectionElement(SECTION.PROJECTS);
+  if (!projectsEl) return;
+
+  if (window.location.hash === `#${SECTION.PROJECTS}`) {
+    loadProjectsScene();
+    return;
+  }
+
+  if (!("IntersectionObserver" in window)) {
+    window.addEventListener("scroll", loadProjectsScene, { once: true, passive: true });
+    return;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (!entries[0]?.isIntersecting) return;
+
+      observer.disconnect();
+      loadProjectsScene();
+    },
+    { rootMargin: "900px 0px", threshold: 0 },
+  );
+
+  observer.observe(projectsEl);
+}
+
 async function boot() {
-  try {
-    await brandLogoEl?.decode();
-  } catch {}
+  await Promise.all(
+    [brandLogoEl, introLogoEl].filter(Boolean).map(async (img) => {
+      try {
+        await img.decode();
+      } catch {}
+    }),
+  );
 
   if (document.fonts?.ready) {
     try {
@@ -1342,6 +1452,7 @@ async function boot() {
   bindDesktopSectionSync();
   bindResizeHandling();
   bindFaqAccordion();
+  setupProjectsLazyLoader();
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {

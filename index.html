@@ -124,13 +124,17 @@
         ]
       }
     </script>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=20260506-responsive-align8" />
   </head>
 
   <body>
     <header class="topbar" aria-hidden="false">
-      <div class="logo-mount" id="logoMount" aria-hidden="true"></div>
-
+      <a
+        class="logo-mount"
+        id="logoMount"
+        href="#hero"
+        aria-label="Ga naar home"
+      ></a>
       <div class="nav-rail">
         <nav class="nav-links" aria-label="Primary">
           <a href="#about">OVER+ONS</a>
@@ -170,7 +174,6 @@
         <a href="#about">OVER+ONS</a>
         <a href="#projects">PROJECTEN</a>
         <a href="#socials">SOCIALS</a>
-
         <a href="#faq">FAQ</a>
       </nav>
     </header>
@@ -189,12 +192,22 @@
       </div>
     </div>
 
-    <!-- logo used by print fx -->
+    <!-- logo sources used by intro and fixed header mark -->
     <img
       class="logo logo-float"
       id="brandLogo"
-      src="/drops/LogoGreen.png"
+      src="assets/images/logos/logo-black.png"
       alt="ODD UNIT"
+      decoding="async"
+      fetchpriority="high"
+      style="opacity: 0"
+    />
+    <img
+      class="logo logo-float"
+      id="introLogo"
+      src="assets/images/logos/logo-black-studio.png"
+      alt=""
+      aria-hidden="true"
       decoding="async"
       fetchpriority="high"
       style="opacity: 0"
@@ -272,8 +285,8 @@
             <div class="module-body">
               <ul>
                 <li>
-                  <b>Branding;</b> huisstijl en identiteitsvorming, logo design
-                  ...
+                  <b>Branding;</b> <br />huisstijl en identiteitsvorming, logo
+                  design ...
                 </li>
                 <li><b>Packaging Design;</b> ontwerpen van verpakkingen</li>
                 <li>
@@ -282,7 +295,7 @@
                 <!-- <li>
                   <b>Prints;</b> posters, drukwerk, fysieke communicatiedragers.
                 </li> -->
-                <li><b>Layout engineering</b></li>
+                <li><b>Layout engineering;</b></li>
               </ul>
             </div>
           </div>
@@ -295,13 +308,18 @@
             <div class="module-body">
               <ul>
                 <li>
-                  <b>Front-end engineering</b>
+                  <b>Website development;</b><br />
+                  Van statische landingspagina's tot interactieve websites en
+                  webshops.
                 </li>
                 <li>
-                  <b>Interactieve prototypes;</b>AR, motion, micro-interactions
+                  <b>Front-end engineering;</b><br />
+                  Strakke, responsive interfaces met focus op performance,
+                  animatie en gebruikservaring.
                 </li>
                 <li>
-                  <b>Web-modules;</b>Kleine tools, utilities en experimenten.
+                  <b>Web-modules;</b><br />Custom tools, dashboards en andere
+                  uitbreidingen.
                 </li>
               </ul>
             </div>
@@ -315,21 +333,20 @@
             <div class="module-body">
               <ul>
                 <li>
-                  <b>3D-modellering</b>
+                  <b>3D-modellering;</b>
                 </li>
                 <li>
-                  <b>3D printing;</b> High-detail prints, resin en fillament
-                  based
+                  <b>3D printing;</b> <br />High-detail prints, gemaakt uit
+                  resin of filament.
                 </li>
                 <li>
-                  <b>Mallen & casting;</b> kleine batch productie van art toys
+                  <b>Mallen & casting;</b> Kleine batch productie van art toys
                   en onderdelen
                 </li>
                 <li>
-                  <b>Rapid prototyping;</b> snelle iteraties voor tests en
+                  <b>Rapid prototyping;</b> Snelle iteraties voor tests en
                   experiment
                 </li>
-                <li><b>Layout engineering</b></li>
               </ul>
             </div>
           </div>
@@ -349,6 +366,9 @@
                 id="projectNextBtn"
                 type="button"
                 aria-label="Next project"
+                aria-hidden="true"
+                disabled
+                hidden
               ></button>
             </div>
             <aside class="projects-side projects-side-top">
@@ -365,7 +385,6 @@
                 </div>
 
                 <div class="projects-meta-item">
-                  <span class="projects-meta-label">Editie</span>
                   <span class="projects-meta-value" id="projectEdition"
                     >01.</span
                   >
@@ -384,28 +403,42 @@
 
             <aside class="projects-side projects-side-bottom">
               <p class="projects-desc" id="projectDesc">
-                De nieuwste Art Toy. Een strakke afwerking en een stoere
-                uitstraling. Wereldwijd in beperkte oplage verkrijgbaar. Met
-                liefde gemaakt in BelgiÃ«. Ontworpen door Odd Unit. Gegoten in
-                hars. Met de hand afgewerkt. Elk stuk is uniek.
+                Dit is Fons. Fons heeft net een dikke karper gevangen, azo een
+                klet péken! Wil je graag jouw eigen Fons? Goed nieuws! Wij
+                brengen hem binnenkort uit als onze eerste resin Art Toy,
+                handgemaakt in ons atelier.
               </p>
 
-              <a href="#" class="projects-cta" id="projectBuy">KOOP NU</a>
+              <a
+                class="projects-cta is-disabled"
+                id="projectBuy"
+                aria-disabled="true"
+                tabindex="-1"
+                href="#projects"
+              >
+                COMING SOON</a
+              >
 
               <div
                 class="projects-dots"
                 id="projectDots"
                 aria-label="Project slides"
+                aria-hidden="true"
+                hidden
               >
                 <button
                   class="projects-dot is-active"
                   type="button"
                   aria-label="Project 1"
+                  disabled
+                  hidden
                 ></button>
                 <button
                   class="projects-dot"
                   type="button"
                   aria-label="Project 2"
+                  disabled
+                  hidden
                 ></button>
               </div>
             </aside>
@@ -760,6 +793,6 @@
       </div>
     </section>
 
-    <script type="module" src="main.js"></script>
+    <script type="module" src="main.js?v=20260506-project-layout"></script>
   </body>
 </html>
