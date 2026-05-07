@@ -2340,6 +2340,10 @@ body.is-intro .mobile-menu-backdrop {
   }
 }
 /* ========================================================= MOBILE ========================================================= */
+.contact-pill__label {
+  display: block;
+  line-height: 1;
+}
 @media (max-width: 900px) {
   :root {
     --headerH: 56px;
@@ -2471,6 +2475,19 @@ body.is-intro .mobile-menu-backdrop {
     font-size: clamp(7px, 1.7vw, 9px);
     letter-spacing: 0.06em;
     z-index: calc(var(--z-header) + 103);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    line-height: 1;
+
+    padding-top: 0.3em;
+    padding-bottom: 0;
+  }
+  .contact-pill__label {
+    display: block;
+    line-height: 1;
+    transform: translateY(0.06em);
   }
   .menu-toggle {
     display: inline-flex;
