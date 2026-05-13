@@ -8,6 +8,11 @@
       name="description"
       content="Schrijf je in op de ODD UNIT nieuwsbrief voor drops, projecten en updates."
     />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,7 +24,7 @@
     <style>
       @font-face {
         font-family: "Medium";
-        src: url("/fonts/medium.otf") format("opentype");
+        src: url("../fonts/medium.otf") format("opentype");
         font-weight: 400;
         font-style: normal;
         font-display: swap;
@@ -37,13 +42,49 @@
         --line-w: 2px;
         --ease: cubic-bezier(0.16, 1, 0.3, 1);
 
-        --topbar-h: 72px;
+        --ratio: calc(1920 / 1080);
+        --logo-ratio: 8582 / 4000;
+        --vh: 100vh;
+        --leftGap: clamp(56px, 4vw, 96px);
+        --rightGap: clamp(72px, 5vw, 120px);
+        --bottomGap: clamp(28px, 3vh, 40px);
+        --navZoneH: clamp(44px, 5vh, 64px);
+        --topbar-h: var(--navZoneH);
+        --usableW: calc(100vw - var(--leftGap) - var(--rightGap));
+        --usableH: calc(var(--vh) - var(--navZoneH) - var(--bottomGap));
+        --frameH: min(calc(var(--usableW) / var(--ratio)), var(--usableH));
+        --frameW: calc(var(--frameH) * var(--ratio));
+        --x0: calc(var(--leftGap) + ((var(--usableW) - var(--frameW)) / 2));
+        --x1: calc(var(--x0) + var(--frameW));
+        --x25: calc(var(--x0) + var(--frameW) * 0.25);
+        --x75: calc(var(--x0) + var(--frameW) * 0.75);
+        --logo-cell-w: calc(var(--x25) - var(--x0));
+        --logo-w: clamp(60px, calc(var(--logo-cell-w) * 0.22), 110px);
+        --logo-h: clamp(28px, calc(var(--logo-cell-w) * 0.1025), 51px);
+        --z-header: 600;
+        --navCell1Center: calc((var(--x0) + var(--x25)) / 2);
+        --navLinksStart: var(--x25);
+        --navLinksEnd: var(--x75);
+        --navLinksW: calc(var(--navLinksEnd) - var(--navLinksStart));
+        --navCell4Center: calc((var(--x75) + var(--x1)) / 2);
+        --navCell4W: calc(var(--x1) - var(--x75));
+        --navLinkSize: clamp(10px, 0.62vw, 12px);
+        --contactPillH: clamp(28px, 2.6vh, 34px);
+        --contactPillPadX: clamp(12px, 1.1vw, 18px);
+        --contactPillFont: clamp(9px, 0.55vw, 10px);
+        --contactPillMaxW: calc(var(--navCell4W) - clamp(16px, 1.4vw, 28px));
         --page-max: 1640px;
         --card-max: 1500px;
 
         --x-pad: clamp(16px, 3vw, 40px);
         --y-pad: clamp(20px, 3vw, 40px);
         --card-pad: clamp(24px, 3vw, 56px);
+      }
+
+      @supports (height: 100svh) {
+        :root {
+          --vh: 100svh;
+        }
       }
 
       * {
@@ -93,83 +134,153 @@
         position: relative;
         z-index: 2;
         min-height: 100vh;
-        display: grid;
-        grid-template-rows: var(--topbar-h) 1fr;
+        padding-top: var(--topbar-h);
       }
 
       .topbar {
-        background: var(--orange);
-        position: sticky;
+        position: fixed;
+        inset: 0 0 auto 0;
+        height: var(--navZoneH);
         top: 0;
-        z-index: 20;
+        z-index: var(--z-header);
+        pointer-events: none;
       }
 
-      .topbar__inner {
-        width: min(100%, var(--page-max));
+      .nav-rail {
+        position: fixed;
+        inset: 0 0 auto 0;
+        width: 100%;
+        height: var(--navZoneH);
+        background: var(--orange);
+        pointer-events: auto;
+        z-index: calc(var(--z-header) + 1);
+      }
+
+      .nav-links {
+        position: absolute;
+        left: var(--navLinksStart);
+        top: 0;
+        width: var(--navLinksW);
         height: 100%;
-        margin: 0 auto;
-        padding: 0 var(--x-pad);
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        align-items: center;
-        gap: 20px;
-      }
-
-      .topbar__brand,
-      .topbar__nav a,
-      .topbar__back {
-        text-decoration: none;
-      }
-
-      .topbar__brand {
-        color: var(--bg);
+        margin: 0;
+        padding: 0;
+        display: block;
+        --navProjectW: 11.2em;
+        --navSocialW: 8.06em;
+        --navTextGap: clamp(
+          5px,
+          calc((var(--navLinksW) / 2 - 20.9em) / 1.5),
+          52px
+        );
         font-family: var(--font-display);
-        font-size: clamp(18px, 1.8vw, 30px);
-        line-height: 0.9;
-        letter-spacing: 0.04em;
+        font-size: var(--navLinkSize);
+        letter-spacing: 0.18em;
         text-transform: uppercase;
+        text-align: center;
       }
 
-      .topbar__nav {
+      .nav-links a {
+        position: absolute;
+        top: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: clamp(14px, 2vw, 32px);
+        width: max-content;
+        height: 100%;
+        inline-size: auto;
         min-width: 0;
-      }
-
-      .topbar__nav a {
         color: var(--bg);
-        font-family: var(--font-display);
-        font-size: clamp(10px, 0.7vw, 12px);
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
+        text-decoration: none;
         white-space: nowrap;
       }
 
-      .topbar__back {
+      .nav-links a:nth-child(1) {
+        right: calc(
+          50% + var(--navProjectW) + (var(--navTextGap) * 1.5)
+        );
+      }
+
+      .nav-links a:nth-child(2) {
+        right: calc(50% + (var(--navTextGap) / 2));
+      }
+
+      .nav-links a:nth-child(3) {
+        left: calc(50% + (var(--navTextGap) / 2));
+      }
+
+      .nav-links a:nth-child(4) {
+        left: calc(50% + var(--navSocialW) + (var(--navTextGap) * 1.5));
+      }
+
+      .logo-mount {
+        position: fixed;
+        left: var(--navCell1Center);
+        top: calc(var(--navZoneH) / 2);
+        width: var(--logo-w);
+        height: var(--logo-h);
+        aspect-ratio: var(--logo-ratio);
+        transform: translate(-50%, -50%);
+        z-index: calc(var(--z-header) + 3);
+        opacity: 1;
+        pointer-events: auto;
+        cursor: pointer;
+        isolation: isolate;
+        --logo-url: url("../assets/images/logos/logo-black.svg");
+        background: url("../assets/images/logos/logo-black.svg") left center /
+          contain no-repeat;
+      }
+
+      .logo-mount::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--bg);
+        -webkit-mask-image: var(--logo-url);
+        mask-image: var(--logo-url);
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-position: left center;
+        mask-position: left center;
+      }
+
+      .contact-pill {
+        position: fixed;
+        left: var(--navCell4Center);
+        top: calc(var(--navZoneH) / 2);
+        transform: translate(-50%, -50%);
+        pointer-events: auto;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 34px;
-        padding: 0 16px;
+        min-height: var(--contactPillH);
+        max-width: var(--contactPillMaxW);
+        padding: 0 var(--contactPillPadX);
         border-radius: 999px;
         background: var(--bg);
         color: var(--orange);
         font-family: var(--font-display);
-        font-size: clamp(10px, 0.68vw, 12px);
-        letter-spacing: 0.14em;
+        font-size: var(--contactPillFont);
+        letter-spacing: 0.16em;
         text-transform: uppercase;
-        transition:
-          background 0.18s var(--ease),
-          color 0.18s var(--ease),
-          transform 0.18s var(--ease);
+        text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        z-index: calc(var(--z-header) + 4);
+        transition: opacity 0.18s var(--ease);
       }
 
-      .topbar__back:hover {
-        background: rgba(7, 7, 7, 0.84);
-        color: #fff;
-        transform: translateY(-1px);
+      .contact-pill__label {
+        display: block;
+        line-height: 1;
+      }
+
+      .menu-toggle,
+      .mobile-menu,
+      .mobile-menu-backdrop {
+        display: none;
       }
 
       .page {
@@ -316,7 +427,20 @@
 
       @media (max-width: 900px) {
         :root {
-          --topbar-h: 56px;
+          --headerH: 56px;
+          --navZoneH: var(--headerH);
+          --topbar-h: var(--headerH);
+          --mobileInsetX: 10px;
+          --mobileInsetY: 8px;
+          --x0: var(--mobileInsetX);
+          --x1: calc(100vw - var(--mobileInsetX));
+          --frameW: calc(var(--x1) - var(--x0));
+          --x25: calc(var(--x0) + var(--frameW) * 0.25);
+          --x75: calc(var(--x0) + var(--frameW) * 0.75);
+          --logo-w: clamp(44px, 14vw, 60px);
+          --logo-h: clamp(20px, 6.5vw, 28px);
+          --menuBtnW: clamp(42px, 11vw, 48px);
+          --menuGap: clamp(8px, 2vw, 12px);
           --x-pad: 10px;
           --y-pad: 10px;
           --card-pad: 18px;
@@ -328,25 +452,164 @@
           align-items: start;
         }
 
-        .topbar__inner {
-          grid-template-columns: auto auto;
-          justify-content: space-between;
-          gap: 12px;
+        .topbar {
+          height: var(--headerH);
+          z-index: calc(var(--z-header) + 100);
+          display: block;
+          padding: 0;
         }
 
-        .topbar__nav {
-          display: none;
+        .nav-rail {
+          height: var(--headerH);
+          z-index: calc(var(--z-header) + 101);
+          display: block;
+          padding: 0;
         }
 
-        .topbar__brand {
-          font-size: clamp(16px, 5vw, 24px);
+        .nav-links {
+          display: none !important;
         }
 
-        .topbar__back {
-          min-height: 30px;
-          padding: 0 12px;
-          font-size: 9px;
-          letter-spacing: 0.1em;
+        .logo-mount {
+          left: calc(var(--x0) + clamp(10px, 2.6vw, 14px));
+          top: calc(var(--headerH) / 2);
+          transform: translateY(-50%);
+          z-index: calc(var(--z-header) + 103);
+        }
+
+        .contact-pill {
+          left: auto;
+          right: clamp(108px, 24vw, 184px);
+          top: calc(var(--headerH) / 2);
+          transform: translateY(-50%);
+          min-width: 0;
+          max-width: 104px;
+          height: clamp(26px, 5vw, 30px);
+          min-height: 0;
+          padding: 0 clamp(10px, 2.2vw, 14px);
+          padding-top: 0.3em;
+          padding-bottom: 0;
+          font-size: clamp(7px, 1.7vw, 9px);
+          letter-spacing: 0.06em;
+          line-height: 1;
+          z-index: calc(var(--z-header) + 103);
+        }
+
+        .contact-pill__label {
+          transform: translateY(0.06em);
+        }
+
+        .menu-toggle {
+          display: inline-flex !important;
+          position: fixed;
+          right: clamp(10px, 4vw, 20px);
+          top: calc(var(--headerH) / 2);
+          transform: translateY(-50%);
+          width: var(--menuBtnW);
+          height: clamp(32px, 8vw, 36px);
+          padding: 0;
+          margin: 0;
+          background: var(--orange);
+          border: none;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          gap: 4px;
+          cursor: pointer;
+          pointer-events: auto;
+          z-index: 9999;
+          opacity: 1;
+          appearance: none;
+          -webkit-appearance: none;
+          transition: opacity 0.18s var(--ease);
+        }
+
+        .menu-toggle span {
+          display: block;
+          position: relative;
+          z-index: 1;
+          width: 16px;
+          height: 2px;
+          background: var(--bg);
+          transition:
+            transform 0.22s var(--ease),
+            opacity 0.18s var(--ease);
+        }
+
+        .menu-toggle.is-open span:nth-child(1) {
+          transform: translateY(6px) rotate(45deg);
+        }
+
+        .menu-toggle.is-open span:nth-child(2) {
+          opacity: 0;
+        }
+
+        .menu-toggle.is-open span:nth-child(3) {
+          transform: translateY(-6px) rotate(-45deg);
+        }
+
+        .mobile-menu-backdrop {
+          display: block;
+          position: fixed;
+          inset: var(--headerH) 0 0 0;
+          background: var(--bg);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.22s var(--ease);
+          z-index: calc(var(--z-header) + 104);
+        }
+
+        .mobile-menu {
+          display: block;
+          position: fixed;
+          left: var(--x0);
+          top: calc(var(--headerH) + 10px);
+          width: var(--frameW);
+          background: var(--bg);
+          border: var(--line-w) solid var(--orange);
+          opacity: 0;
+          transform: translateY(-10px);
+          pointer-events: none;
+          transition:
+            opacity 0.22s var(--ease),
+            transform 0.22s var(--ease);
+          z-index: calc(var(--z-header) + 105);
+          overflow: visible;
+        }
+
+        .mobile-menu a {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          min-height: 56px;
+          padding: 0 16px;
+          border-bottom: var(--line-w) solid var(--orange);
+          text-decoration: none;
+          color: var(--orange);
+          background: var(--bg);
+          font-family: var(--font-display);
+          font-size: clamp(14px, 4.2vw, 18px);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .mobile-menu a:last-child {
+          border-bottom: none;
+        }
+
+        body.menu-open {
+          overflow: hidden;
+        }
+
+        body.menu-open .mobile-menu-backdrop {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        body.menu-open .mobile-menu {
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
         }
 
         .form-card {
@@ -406,27 +669,81 @@
           font-size: clamp(38px, 16vw, 58px);
         }
       }
+
+      @media (max-width: 480px) {
+        .contact-pill {
+          max-width: 92px;
+          font-size: 8px;
+          letter-spacing: 0.04em;
+        }
+
+        .mobile-menu a {
+          min-height: 52px;
+          padding: 0 14px;
+          font-size: clamp(12px, 4.1vw, 16px);
+        }
+
+        .menu-toggle {
+          width: 40px;
+          height: 32px;
+        }
+
+        .menu-toggle span {
+          width: 15px;
+        }
+      }
     </style>
   </head>
 
   <body>
     <div class="page-shell">
-      <header class="topbar">
-        <div class="topbar__inner">
-          <a class="topbar__brand" href="/">
-            ODD<br />
-            UNIT
-          </a>
+      <header class="topbar" aria-hidden="false">
+        <a class="logo-mount" id="logoMount" href="/" aria-label="Ga naar home"></a>
 
-          <nav class="topbar__nav" aria-label="Primary">
-            <a href="/#about">ABOUT+US</a>
-            <a href="/#projects">PROJECTS</a>
+        <div class="nav-rail">
+          <nav class="nav-links" aria-label="Primary">
+            <a href="/#about">OVER+ONS</a>
+            <a href="/#projects">PROJECTEN</a>
             <a href="/#socials">SOCIALS</a>
-            <a href="/#contact">CONTACT</a>
+            <a href="/#faq">FAQ</a>
           </nav>
-
-          <a class="topbar__back" href="/">GO BACK</a>
         </div>
+
+        <a class="contact-pill" href="/#contact">
+          <span class="contact-pill__label">CONTACT</span>
+        </a>
+
+        <button
+          class="menu-toggle"
+          id="menuToggle"
+          type="button"
+          aria-label="Open menu"
+          aria-controls="mobileMenu"
+          aria-expanded="false"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        <div
+          class="mobile-menu-backdrop"
+          id="mobileMenuBackdrop"
+          aria-hidden="true"
+        ></div>
+
+        <nav
+          class="mobile-menu"
+          id="mobileMenu"
+          aria-label="Mobile navigation"
+          aria-hidden="true"
+        >
+          <a href="/#about">OVER+ONS</a>
+          <a href="/#projects">PROJECTEN</a>
+          <a href="/#socials">SOCIALS</a>
+          <a href="/newsletter/">NIEUWSBRIEF</a>
+          <a href="/#faq">FAQ</a>
+        </nav>
       </header>
 
       <main class="page">
@@ -470,5 +787,54 @@
         </div>
       </main>
     </div>
+
+    <script>
+      (() => {
+        const menuToggle = document.getElementById("menuToggle");
+        const mobileMenu = document.getElementById("mobileMenu");
+        const mobileMenuBackdrop = document.getElementById(
+          "mobileMenuBackdrop",
+        );
+
+        if (!menuToggle || !mobileMenu || !mobileMenuBackdrop) return;
+
+        const closeMenu = () => {
+          document.body.classList.remove("menu-open");
+          menuToggle.classList.remove("is-open");
+          menuToggle.setAttribute("aria-expanded", "false");
+          mobileMenu.setAttribute("aria-hidden", "true");
+          mobileMenuBackdrop.setAttribute("aria-hidden", "true");
+        };
+
+        const openMenu = () => {
+          document.body.classList.add("menu-open");
+          menuToggle.classList.add("is-open");
+          menuToggle.setAttribute("aria-expanded", "true");
+          mobileMenu.setAttribute("aria-hidden", "false");
+          mobileMenuBackdrop.setAttribute("aria-hidden", "false");
+        };
+
+        menuToggle.addEventListener("click", () => {
+          if (document.body.classList.contains("menu-open")) {
+            closeMenu();
+          } else {
+            openMenu();
+          }
+        });
+
+        mobileMenuBackdrop.addEventListener("click", closeMenu);
+        mobileMenu
+          .querySelectorAll("a")
+          .forEach((link) => link.addEventListener("click", closeMenu));
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeMenu();
+        });
+
+        window
+          .matchMedia("(min-width: 901px)")
+          .addEventListener("change", closeMenu);
+      })();
+    </script>
   </body>
 </html>
