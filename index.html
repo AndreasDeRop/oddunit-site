@@ -418,13 +418,22 @@
                 loop
                 playsinline
                 preload="metadata"
-                poster="projects/fons-poster.webp?v=20260518-fonscolor-alpha"
+                poster="projects/fons-poster.webp?v=20260518-ios-fallback2"
               >
                 <source
-                  src="projects/fons-loop.webm?v=20260518-fonscolor-alpha"
+                  src="projects/fons-loop.webm?v=20260518-ios-fallback2"
                   type="video/webm"
                 />
               </video>
+              <img
+                class="projects-video-fallback"
+                id="projectsVideoFallback"
+                src="projects/fons-poster.webp?v=20260518-ios-fallback2"
+                data-fallback-src="projects/fons-loop-ios.apng?v=20260518-ios-fallback2"
+                alt=""
+                decoding="async"
+                loading="eager"
+              />
 
               <button
                 class="projects-mobile-next"
@@ -859,6 +868,6 @@
       </div>
     </section>
 
-    <script type="module" src="main.js?v=20260518-fonscolor-alpha"></script>
+    <script type="module" src="main.js?v=20260518-ios-fallback2"></script>
   </body>
 </html>

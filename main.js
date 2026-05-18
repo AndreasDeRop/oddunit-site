@@ -4,7 +4,7 @@ import ScrollToPlugin from "https://esm.sh/gsap@3.12.2/ScrollToPlugin";
 gsap.registerPlugin(ScrollToPlugin);
 
 const BREAKPOINT = 900;
-const APP_ASSET_VERSION = "20260518-fonscolor-alpha";
+const APP_ASSET_VERSION = "20260518-ios-fallback2";
 const SNAP_DUR = 0.9;
 const PLUS_Z = 99999;
 const MOBILE_SWIPE_MIN = 52;
@@ -1426,6 +1426,62 @@ function setupProjectsLazyLoader() {
   observer.observe(projectsEl);
 }
 
+function setupProjectsVideoFallback() {
+  const video = document.getElementById("projectsVideo");
+  const fallback = document.getElementById("projectsVideoFallback");
+  const cell = video?.closest(".projects-canvas-cell");
+  if (!video || !fallback || !cell) return;
+
+  const fallbackSrc = fallback.dataset.fallbackSrc;
+  const isIos =
+    /iPad|iPhone|iPod/.test(window.navigator.userAgent) ||
+    (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+  const canPlayVp9 =
+    typeof video.canPlayType === "function" &&
+    video.canPlayType('video/webm; codecs="vp9"') !== "";
+
+  function showFallback() {
+    if (fallbackSrc && fallback.getAttribute("src") !== fallbackSrc) {
+      fallback.setAttribute("src", fallbackSrc);
+    }
+    cell.classList.add("is-video-fallback");
+    cell.classList.remove("is-video-ready");
+  }
+
+  function showVideo() {
+    cell.classList.add("is-video-ready");
+    cell.classList.remove("is-video-fallback");
+  }
+
+  if (isIos || !canPlayVp9) {
+    showFallback();
+    return;
+  }
+
+  video.addEventListener("playing", showVideo, { once: true });
+  video.addEventListener(
+    "loadeddata",
+    () => {
+      if (video.readyState >= 2) showVideo();
+    },
+    { once: true },
+  );
+  video.addEventListener("error", showFallback);
+
+  video.querySelectorAll("source").forEach((source) => {
+    source.addEventListener("error", showFallback);
+  });
+
+  const playAttempt = video.play?.();
+  if (playAttempt?.catch) {
+    playAttempt.catch(showFallback);
+  }
+
+  window.setTimeout(() => {
+    if (video.readyState < 2 || video.paused) showFallback();
+  }, 2500);
+}
+
 async function boot() {
   await Promise.all(
     [brandLogoEl, introLogoEl].filter(Boolean).map(async (img) => {
@@ -1452,6 +1508,7 @@ async function boot() {
   bindDesktopSectionSync();
   bindResizeHandling();
   bindFaqAccordion();
+  setupProjectsVideoFallback();
   setupProjectsLazyLoader();
 
   requestAnimationFrame(() => {
