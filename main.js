@@ -121,9 +121,10 @@ function getHeaderOffset() {
 function scrollToY(y, duration = SNAP_DUR) {
   if (gsap.plugins && gsap.plugins.ScrollToPlugin) {
     return gsap.to(window, {
-      scrollTo: { y, autoKill: true },
+      scrollTo: { y, autoKill: false },
       duration,
       ease: "power2.inOut",
+      overwrite: true,
     });
   }
 
@@ -135,6 +136,7 @@ function scrollToY(y, duration = SNAP_DUR) {
     t: 1,
     duration,
     ease: "power2.inOut",
+    overwrite: true,
     onUpdate: () => window.scrollTo(0, start + delta * state.t),
   });
 }
@@ -488,15 +490,21 @@ function goToSection(section) {
   }
 
   snapBusy = true;
-  inputLockUntil = now() + 900;
+  inputLockUntil = now() + 1350;
 
   const tl = gsap.timeline({
 onComplete: () => {
+  window.scrollTo(0, getSectionScrollY(section));
+
   snapState = section;
   setActiveSectionState(section);
-  snapBusy = false;
-  inputLockUntil = now() + 220;
   settlePluses(section);
+
+  inputLockUntil = now() + 550;
+
+  requestAnimationFrame(() => {
+    snapBusy = false;
+  });
 },
   });
 
@@ -560,15 +568,8 @@ function bindDesktopWheelSnap() {
       if (absY < 10) return;
 
       if (snapBusy || now() < inputLockUntil) {
-        if (
-          (snapState !== SECTION.PROJECTS || shouldSnapBackFromProjects()) &&
-          (snapState !== SECTION.SOCIALS || shouldSnapBackFromSocials()) &&
-          (snapState !== SECTION.CONTACT || shouldSnapBackFromContact()) &&
-          (snapState !== SECTION.NEWSLETTER || shouldSnapBackFromNewsletter()) &&
-          (snapState !== SECTION.FAQ || shouldSnapBackFromFaq())
-        ) {
-          e.preventDefault();
-        }
+        e.preventDefault();
+        e.stopPropagation();
         return;
       }
 
