@@ -1117,31 +1117,36 @@ function playIntro() {
   const printLogoEl = getPrintLogoEl();
   const landingRect = landingMarkEl.getBoundingClientRect();
   const mountRect = logoMountEl.getBoundingClientRect();
-  const baseRect = printLogoEl.getBoundingClientRect();
+const baseRect = printLogoEl.getBoundingClientRect();
+const logoRatio = baseRect.height / Math.max(1, baseRect.width);
 
-  const startScale = landingRect.width / Math.max(1, baseRect.width);
-  const startW = baseRect.width * startScale;
-  const startH = baseRect.height * startScale;
-  const startX = landingRect.left + (landingRect.width - startW) / 2;
-  const startY = landingRect.top + (landingRect.height - startH) / 2;
+const startW = landingRect.width;
+const startH = startW * logoRatio;
 
-  const endX = mountRect.left;
-  const endY = mountRect.top;
+const startX = landingRect.left + (landingRect.width - startW) / 2;
+const startY = landingRect.top + (landingRect.height - startH) / 2;
+
+const endX = mountRect.left;
+const endY = mountRect.top;
+const endScale = mountRect.width / Math.max(1, startW);
+
+logoPrintFxEl.style.width = `${startW}px`;
+logoPrintFxEl.style.height = `${startH}px`;
 
   const heroTargets = getSectionCornerTargets(SECTION.HERO);
 
   gsap.set(landingPlusEls, { opacity: 0.95 });
 
-  gsap.set(logoPrintFxEl, {
-    opacity: 1,
-    x: startX,
-    y: startY,
-    scale: startScale,
-    transformOrigin: "top left",
-    "--py": 0,
-    "--hx": 0,
-    "--studioCut": "0%",
-  });
+gsap.set(logoPrintFxEl, {
+  opacity: 1,
+  x: startX,
+  y: startY,
+  scale: 1,
+  transformOrigin: "top left",
+  "--py": 0,
+  "--hx": 0,
+  "--studioCut": "0%",
+});
 
   const LAYERS = 25;
   const TIME_PER_LAYER = 0.07;
@@ -1244,17 +1249,17 @@ function playIntro() {
     0,
   );
   //terugzetten na coming soon
-  tl.to(
-    logoPrintFxEl,
-    {
-      x: endX,
-      y: endY,
-      scale: 1,
-      duration: MOVE_DUR,
-      ease: "power2.inOut",
-    },
-    MOVE_START,
-  );
+tl.to(
+  logoPrintFxEl,
+  {
+    x: endX,
+    y: endY,
+    scale: endScale,
+    duration: MOVE_DUR,
+    ease: "power2.inOut",
+  },
+  MOVE_START,
+);
 
   tl.to(
     logoPrintFxEl,

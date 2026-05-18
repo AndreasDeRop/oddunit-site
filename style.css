@@ -460,7 +460,6 @@ body.intro-complete .logo-mount {
       calc(var(--py) * 100% - var(--layerH)) 0
   );
   opacity: 0.95;
-  filter: brightness(1.06);
 }
 body.is-intro .contact-pill,
 body.is-intro .menu-toggle,
