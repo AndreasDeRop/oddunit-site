@@ -4,7 +4,7 @@ import ScrollToPlugin from "https://esm.sh/gsap@3.12.2/ScrollToPlugin";
 gsap.registerPlugin(ScrollToPlugin);
 
 const BREAKPOINT = 900;
-const APP_ASSET_VERSION = "20260506-project-layout";
+const APP_ASSET_VERSION = "20260518-fonscolor-alpha";
 const SNAP_DUR = 0.9;
 const PLUS_Z = 99999;
 const MOBILE_SWIPE_MIN = 52;
@@ -1401,7 +1401,7 @@ function bindFaqAccordion() {
 
 function setupProjectsLazyLoader() {
   const projectsEl = getSectionElement(SECTION.PROJECTS);
-  if (!projectsEl) return;
+  if (!projectsEl || !document.getElementById("projectsCanvas")) return;
 
   if (window.location.hash === `#${SECTION.PROJECTS}`) {
     loadProjectsScene();

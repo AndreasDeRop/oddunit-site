@@ -410,7 +410,21 @@
         <div class="projects-sticky">
           <div class="projects-frame">
             <div class="projects-canvas-cell" aria-hidden="true">
-              <canvas id="projectsCanvas"></canvas>
+              <video
+                class="projects-video"
+                id="projectsVideo"
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                poster="projects/fons-poster.webp?v=20260518-fonscolor-alpha"
+              >
+                <source
+                  src="projects/fons-loop.webm?v=20260518-fonscolor-alpha"
+                  type="video/webm"
+                />
+              </video>
 
               <button
                 class="projects-mobile-next"
@@ -425,7 +439,7 @@
             <aside class="projects-side projects-side-top">
               <div class="projects-kicker">PROJECT DROP</div>
 
-              <h2 class="projects-title" id="projectTitle">ProtoBoy V3</h2>
+              <h2 class="projects-title" id="projectTitle">FONS</h2>
 
               <div class="projects-meta">
                 <div class="projects-meta-item">
@@ -447,6 +461,8 @@
                   <div class="projects-ticker__inner" id="projectsTickerInner">
                     <span lang="en">BEING ODD IS PERFECT.</span>
                     <span lang="en">BEING PERFECT IS ODD.</span>
+                    <span lang="en">BEING ODD IS PERFECT.</span>
+                    <span lang="en">BEING PERFECT IS ODD.</span>
                   </div>
                 </div>
               </div>
@@ -465,7 +481,6 @@
                 id="projectBuy"
                 aria-disabled="true"
                 tabindex="-1"
-                href="#projects"
               >
                 COMING SOON</a
               >
@@ -844,6 +859,6 @@
       </div>
     </section>
 
-    <script type="module" src="main.js?v=20260506-project-layout"></script>
+    <script type="module" src="main.js?v=20260518-fonscolor-alpha"></script>
   </body>
 </html>
