@@ -4,11 +4,12 @@ import ScrollToPlugin from "https://esm.sh/gsap@3.12.2/ScrollToPlugin";
 gsap.registerPlugin(ScrollToPlugin);
 
 const BREAKPOINT = 900;
-const APP_ASSET_VERSION = "20260518-ios-fallback2";
+const APP_ASSET_VERSION = "20260527-swipe-hint2";
 const SNAP_DUR = 0.9;
 const PLUS_Z = 99999;
 const MOBILE_SWIPE_MIN = 52;
 const MOBILE_SWIPE_LOCK_MS = 260;
+const MOBILE_SWIPE_HINT_KEY = "oddunit.mobileSwipeHintSeen.v2";
 
 const SECTION = {
   HERO: "hero",
@@ -77,6 +78,7 @@ let mobileTouchLockedAxis = "";
 let desktopSectionSyncRaf = 0;
 let desktopPlusSyncTween = null;
 let projectsScenePromise = null;
+let mobileSwipeHintTimer = 0;
 const mobileMq = window.matchMedia(`(max-width: ${BREAKPOINT}px)`);
 
 function loadProjectsScene() {
@@ -934,6 +936,79 @@ function bindMobileSwipeSnap() {
   );
 }
 
+function hasSeenMobileSwipeHint() {
+  try {
+    return window.localStorage?.getItem(MOBILE_SWIPE_HINT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markMobileSwipeHintSeen() {
+  try {
+    window.localStorage?.setItem(MOBILE_SWIPE_HINT_KEY, "1");
+  } catch {}
+}
+
+function hideMobileSwipeHint(persist = true) {
+  const hint = document.getElementById("mobileSwipeHint");
+  if (mobileSwipeHintTimer) {
+    window.clearTimeout(mobileSwipeHintTimer);
+    mobileSwipeHintTimer = 0;
+  }
+
+  document.body.classList.remove("show-mobile-swipe-hint");
+
+  if (hint) {
+    hint.setAttribute("aria-hidden", "true");
+  }
+
+  if (persist) {
+    markMobileSwipeHintSeen();
+  }
+}
+
+function showMobileSwipeHint() {
+  const hint = document.getElementById("mobileSwipeHint");
+  if (!hint || !isMobile() || hasSeenMobileSwipeHint()) return;
+  if (!introPlayed || document.body.classList.contains("menu-open")) return;
+  if (snapState !== SECTION.HERO || window.location.hash) return;
+
+  hint.setAttribute("aria-hidden", "false");
+  document.body.classList.add("show-mobile-swipe-hint");
+  markMobileSwipeHintSeen();
+
+  mobileSwipeHintTimer = window.setTimeout(() => {
+    hideMobileSwipeHint(false);
+  }, 6500);
+}
+
+function bindMobileSwipeHint() {
+  if (document.documentElement.dataset.mobileSwipeHintBound === "1") return;
+  document.documentElement.dataset.mobileSwipeHintBound = "1";
+
+  const dismiss = () => {
+    if (document.body.classList.contains("show-mobile-swipe-hint")) {
+      hideMobileSwipeHint();
+    }
+  };
+
+  window.addEventListener("touchstart", dismiss, { passive: true });
+  window.addEventListener("wheel", dismiss, { passive: true });
+  window.addEventListener("keydown", dismiss);
+  window.addEventListener("click", dismiss);
+
+  const handleMqChange = () => {
+    if (!isMobile()) hideMobileSwipeHint(false);
+  };
+
+  if (typeof mobileMq.addEventListener === "function") {
+    mobileMq.addEventListener("change", handleMqChange);
+  } else if (typeof mobileMq.addListener === "function") {
+    mobileMq.addListener(handleMqChange);
+  }
+}
+
 function bindDesktopSectionSync() {
   if (document.documentElement.dataset.desktopSectionSyncBound === "1") return;
   document.documentElement.dataset.desktopSectionSyncBound = "1";
@@ -1192,6 +1267,7 @@ gsap.set(logoPrintFxEl, {
 
     requestAnimationFrame(() => {
       refreshResponsiveLayout();
+      showMobileSwipeHint();
     });
   }
 
@@ -1511,6 +1587,7 @@ async function boot() {
   bindMobileMenu();
   bindScrollTriggers();
   bindMobileSwipeSnap();
+  bindMobileSwipeHint();
   bindDesktopSectionSync();
   bindResizeHandling();
   bindFaqAccordion();
