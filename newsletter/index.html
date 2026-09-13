@@ -166,14 +166,10 @@
         height: 100%;
         margin: 0;
         padding: 0;
-        display: block;
-        --navProjectW: 11.2em;
-        --navSocialW: 8.06em;
-        --navTextGap: clamp(
-          5px,
-          calc((var(--navLinksW) / 2 - 20.9em) / 1.5),
-          52px
-        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(14px, 2vw, 44px);
         font-family: var(--font-display);
         font-size: var(--navLinkSize);
         letter-spacing: 0.18em;
@@ -182,7 +178,7 @@
       }
 
       .nav-links a {
-        position: absolute;
+        position: static;
         top: 0;
         display: flex;
         align-items: center;
@@ -194,24 +190,6 @@
         color: var(--bg);
         text-decoration: none;
         white-space: nowrap;
-      }
-
-      .nav-links a:nth-child(1) {
-        right: calc(
-          50% + var(--navProjectW) + (var(--navTextGap) * 1.5)
-        );
-      }
-
-      .nav-links a:nth-child(2) {
-        right: calc(50% + (var(--navTextGap) / 2));
-      }
-
-      .nav-links a:nth-child(3) {
-        left: calc(50% + (var(--navTextGap) / 2));
-      }
-
-      .nav-links a:nth-child(4) {
-        left: calc(50% + var(--navSocialW) + (var(--navTextGap) * 1.5));
       }
 
       .logo-mount {
@@ -704,10 +682,10 @@
 
         <div class="nav-rail">
           <nav class="nav-links" aria-label="Primary">
-            <a href="/#about">OVER+ONS</a>
-            <a href="/#projects">PROJECTEN</a>
-            <a href="/#socials">SOCIALS</a>
-            <a href="/#faq">FAQ</a>
+            <a href="/services/branding-aalst/">BRANDING</a>
+            <a href="/services/webdesign-aalst/">WEBDESIGN</a>
+            <a href="/services/3d-printen-aalst/">3D PRINT</a>
+            <a href="/cases/">PROJECTEN</a>
           </nav>
         </div>
 
@@ -740,11 +718,11 @@
           aria-label="Mobile navigation"
           aria-hidden="true"
         >
-          <a href="/#about">OVER+ONS</a>
-          <a href="/#projects">PROJECTEN</a>
-          <a href="/#socials">SOCIALS</a>
-          <a href="/newsletter/">NIEUWSBRIEF</a>
-          <a href="/#faq">FAQ</a>
+          <a href="/services/branding-aalst/">BRANDING</a>
+          <a href="/services/webdesign-aalst/">WEBDESIGN</a>
+          <a href="/services/3d-printen-aalst/">3D PRINT</a>
+          <a href="/cases/">PROJECTEN</a>
+          <a href="/#contact">CONTACT</a>
         </nav>
       </header>
 

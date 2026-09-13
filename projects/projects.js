@@ -6,7 +6,6 @@ import gsap from "https://esm.sh/gsap@3.12.2";
 
 const BREAKPOINT = 900;
 const DESKTOP_PIXEL_RATIO = 1.25;
-const ASSET_VERSION = "20260506-project-layout";
 const INITIAL_MODEL_ROTATION = 0;
 const MODEL_CAMERA_PADDING = 1.25;
 const MODEL_SCALE_DESKTOP = 0.9;
@@ -17,14 +16,16 @@ const IDLE_ROTATION_START_DELAY = 900;
 
 const DROPS = [
   {
-    badge: "DROP 01",
-    title: "FONS",
-    desc:
+    badge: "OVERZICHT",
+    title: "CASES",
+    oldDesc:
       "Dit is Fons. Fons heeft net een dikke karper gevangen, azo een klet péken! Wil je graag jouw eigen Fons? Goed nieuws! Wij brengen hem binnenkort uit als onze eerste resin Art Toy, handgemaakt in ons atelier.",
-    link: "#",
-    available: false,
-    ctaLabel: "COMING SOON",
-    model: `./projects/toy1.glb?v=${ASSET_VERSION}`,
+    desc:
+      "Een overzicht van digitale en tastbare projecten: branding, websites, 3D design, prints, packaging en studio drops.",
+    link: "/cases/",
+    available: true,
+    ctaLabel: "BEKIJK CASES",
+    model: "./projects/toy1.glb",
   }
 ];
 

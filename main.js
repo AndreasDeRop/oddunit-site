@@ -4,12 +4,12 @@ import ScrollToPlugin from "https://esm.sh/gsap@3.12.2/ScrollToPlugin";
 gsap.registerPlugin(ScrollToPlugin);
 
 const BREAKPOINT = 900;
-const APP_ASSET_VERSION = "20260527-swipe-hint2";
 const SNAP_DUR = 0.9;
 const PLUS_Z = 99999;
 const MOBILE_SWIPE_MIN = 52;
 const MOBILE_SWIPE_LOCK_MS = 260;
 const MOBILE_SWIPE_HINT_KEY = "oddunit.mobileSwipeHintSeen.v2";
+const INTRO_SEEN_KEY = "oddunit.introSeen.v1";
 
 const SECTION = {
   HERO: "hero",
@@ -75,15 +75,45 @@ let mobileTouchStartY = 0;
 let mobileTouchStartX = 0;
 let mobileTouchActive = false;
 let mobileTouchLockedAxis = "";
+let serviceTouchStartY = 0;
+let serviceTouchStartX = 0;
+let serviceTouchActive = false;
+let serviceTouchLockedAxis = "";
+let serviceSnapIndex = 0;
+let serviceSnapBusy = false;
+let servicePlusActiveIndex = -1;
+let servicePlusRaf = 0;
 let desktopSectionSyncRaf = 0;
 let desktopPlusSyncTween = null;
 let projectsScenePromise = null;
 let mobileSwipeHintTimer = 0;
 const mobileMq = window.matchMedia(`(max-width: ${BREAKPOINT}px)`);
+const hasHomeExperience = Boolean(
+  landingEl &&
+    landingMarkEl &&
+    brandLogoEl &&
+    logoMountEl &&
+    logoPrintFxEl &&
+    heroFrameEl,
+);
+
+function hasSeenIntro() {
+  try {
+    return window.sessionStorage?.getItem(INTRO_SEEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markIntroSeen() {
+  try {
+    window.sessionStorage?.setItem(INTRO_SEEN_KEY, "1");
+  } catch {}
+}
 
 function loadProjectsScene() {
   if (!projectsScenePromise) {
-    projectsScenePromise = import(`./projects/projects.js?v=${APP_ASSET_VERSION}`).catch((error) => {
+    projectsScenePromise = import("./projects/projects.js").catch((error) => {
       projectsScenePromise = null;
       throw error;
     });
@@ -113,11 +143,15 @@ function getHeaderH() {
 
 function getHeaderOffset() {
   const styles = getComputedStyle(document.documentElement);
-  return (
+  const cssOffset =
     parseFloat(styles.getPropertyValue("--headerH")) ||
     parseFloat(styles.getPropertyValue("--topbar-h")) ||
-    0
-  );
+    parseFloat(styles.getPropertyValue("--navZoneH"));
+
+  if (Number.isFinite(cssOffset) && cssOffset > 0) return cssOffset;
+
+  const topbarRect = document.querySelector(".topbar")?.getBoundingClientRect();
+  return topbarRect?.height || topbarRect?.bottom || 0;
 }
 
 function scrollToY(y, duration = SNAP_DUR) {
@@ -469,6 +503,7 @@ function goToSection(section) {
   if (snapBusy || !introPlayed) return;
   if (!plusEls.tl || !plusEls.tr || !plusEls.bl || !plusEls.br) return;
   if (section === snapState) return;
+  if (!getSectionElement(section)) return;
 
   if (section === SECTION.PROJECTS) {
     loadProjectsScene();
@@ -492,7 +527,7 @@ function goToSection(section) {
   }
 
   snapBusy = true;
-  inputLockUntil = now() + 1350;
+  inputLockUntil = now() + SNAP_DUR * 1000;
 
   const tl = gsap.timeline({
 onComplete: () => {
@@ -502,7 +537,7 @@ onComplete: () => {
   setActiveSectionState(section);
   settlePluses(section);
 
-  inputLockUntil = now() + 550;
+  inputLockUntil = now() + 120;
 
   requestAnimationFrame(() => {
     snapBusy = false;
@@ -556,6 +591,17 @@ function shouldPinMobileSectionScroll() {
   return Math.abs(window.scrollY - targetY) > 2;
 }
 
+function getExistingSectionOrder() {
+  return SECTION_ORDER.filter((section) => getSectionElement(section));
+}
+
+function goToAdjacentSection(section, direction) {
+  const nextSection = getAdjacentSection(section, direction);
+  if (nextSection !== section) {
+    goToSection(nextSection);
+  }
+}
+
 function bindDesktopWheelSnap() {
   if (wheelBound) return;
   wheelBound = true;
@@ -566,8 +612,7 @@ function bindDesktopWheelSnap() {
       if (isMobile()) return;
       if (!introPlayed) return;
 
-      const absY = Math.abs(e.deltaY);
-      if (absY < 10) return;
+      if (e.deltaY === 0) return;
 
       if (snapBusy || now() < inputLockUntil) {
         e.preventDefault();
@@ -578,7 +623,7 @@ function bindDesktopWheelSnap() {
       if (snapState === SECTION.HERO) {
         if (e.deltaY > 0) {
           e.preventDefault();
-          goToSection(SECTION.ABOUT);
+          goToAdjacentSection(SECTION.HERO, 1);
         }
         return;
       }
@@ -587,9 +632,9 @@ function bindDesktopWheelSnap() {
         e.preventDefault();
 
         if (e.deltaY > 0) {
-          goToSection(SECTION.PROJECTS);
+          goToAdjacentSection(SECTION.ABOUT, 1);
         } else {
-          goToSection(SECTION.HERO);
+          goToAdjacentSection(SECTION.ABOUT, -1);
         }
         return;
       }
@@ -598,9 +643,9 @@ function bindDesktopWheelSnap() {
         e.preventDefault();
 
         if (e.deltaY > 0) {
-          goToSection(SECTION.SOCIALS);
+          goToAdjacentSection(SECTION.PROJECTS, 1);
         } else {
-          goToSection(SECTION.ABOUT);
+          goToAdjacentSection(SECTION.PROJECTS, -1);
         }
         return;
       }
@@ -609,9 +654,9 @@ function bindDesktopWheelSnap() {
         e.preventDefault();
 
         if (e.deltaY > 0) {
-          goToSection(SECTION.CONTACT);
+          goToAdjacentSection(SECTION.SOCIALS, 1);
         } else if (shouldSnapBackFromSocials()) {
-          goToSection(SECTION.PROJECTS);
+          goToAdjacentSection(SECTION.SOCIALS, -1);
         }
         return;
       }
@@ -620,9 +665,9 @@ function bindDesktopWheelSnap() {
         e.preventDefault();
 
         if (e.deltaY > 0) {
-          goToSection(SECTION.NEWSLETTER);
+          goToAdjacentSection(SECTION.CONTACT, 1);
         } else if (shouldSnapBackFromContact()) {
-          goToSection(SECTION.SOCIALS);
+          goToAdjacentSection(SECTION.CONTACT, -1);
         }
         return;
       }
@@ -631,12 +676,12 @@ function bindDesktopWheelSnap() {
         e.preventDefault();
 
         if (e.deltaY > 0) {
-          goToSection(SECTION.FAQ);
+          goToAdjacentSection(SECTION.NEWSLETTER, 1);
           return;
         }
 
         if (e.deltaY < 0 && shouldSnapBackFromNewsletter()) {
-          goToSection(SECTION.CONTACT);
+          goToAdjacentSection(SECTION.NEWSLETTER, -1);
         }
         return;
       }
@@ -644,7 +689,7 @@ function bindDesktopWheelSnap() {
       if (snapState === SECTION.FAQ) {
         if (e.deltaY < 0 && shouldSnapBackFromFaq()) {
           e.preventDefault();
-          goToSection(SECTION.NEWSLETTER);
+          goToAdjacentSection(SECTION.FAQ, -1);
         }
       }
     },
@@ -653,11 +698,13 @@ function bindDesktopWheelSnap() {
 }
 
 function bindScrollTriggers() {
+  if (!hasHomeExperience) return;
+
   const triggers = document.querySelectorAll('a[href^="#"]');
 
   triggers.forEach((trigger) => {
-    if (!trigger || trigger.dataset.bound === "1") return;
-    trigger.dataset.bound = "1";
+    if (!trigger || trigger.dataset.scrollBound === "1") return;
+    trigger.dataset.scrollBound = "1";
 
     trigger.addEventListener("click", (e) => {
       const href = trigger.getAttribute("href");
@@ -806,15 +853,27 @@ function syncDesktopSectionState() {
 }
 
 function getAdjacentSection(section, direction) {
-  const index = SECTION_ORDER.indexOf(section);
-  if (index === -1) return section;
+  const existingOrder = getExistingSectionOrder();
+  const index = existingOrder.indexOf(section);
+
+  if (index === -1) {
+    const sectionIndex = SECTION_ORDER.indexOf(section);
+    if (sectionIndex === -1) return section;
+
+    const candidates =
+      direction > 0
+        ? existingOrder.filter((item) => SECTION_ORDER.indexOf(item) > sectionIndex)
+        : existingOrder.filter((item) => SECTION_ORDER.indexOf(item) < sectionIndex).reverse();
+
+    return candidates[0] || section;
+  }
 
   const nextIndex = Math.min(
     Math.max(index + direction, 0),
-    SECTION_ORDER.length - 1,
+    existingOrder.length - 1,
   );
 
-  return SECTION_ORDER[nextIndex];
+  return existingOrder[nextIndex];
 }
 
 function bindMobileSwipeSnap() {
@@ -934,6 +993,619 @@ function bindMobileSwipeSnap() {
     },
     { passive: true },
   );
+}
+
+function getServiceSnapTargets() {
+  if (!document.body.classList.contains("service-page")) return [];
+
+  const selector = isMobile()
+    ? ".service-main > .service-hero, .service-main > .service-packages, .service-main > .service-faq, .service-main > .service-cta, .service-main > .cases-section"
+    : ".service-main > .service-hero, .service-main > .service-packages, .service-main > .service-faq, .service-main > .service-cta, .service-main > .cases-section";
+
+  return Array.from(
+    document.querySelectorAll(selector),
+  );
+}
+
+function getServicePanelGap() {
+  const raw =
+    getComputedStyle(document.body).getPropertyValue("--servicePanelGap") ||
+    getComputedStyle(document.documentElement).getPropertyValue("--servicePanelGap");
+  const val = parseFloat(raw);
+  return Number.isFinite(val) ? val : 8;
+}
+
+function getServiceSnapY(target) {
+  if (!target) return 0;
+  if (!isMobile()) return Math.max(0, target.offsetTop - getHeaderOffset());
+  return Math.max(0, target.offsetTop - getHeaderOffset() - getServicePanelGap());
+}
+
+function getNearestServiceSnapIndex() {
+  const targets = getServiceSnapTargets();
+  if (!targets.length) return 0;
+
+  const probeY =
+    window.scrollY + getHeaderOffset() + getServicePanelGap() + window.innerHeight * 0.22;
+  let closestIndex = 0;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  targets.forEach((target, index) => {
+    const distance = Math.abs(target.offsetTop - probeY);
+    if (distance < closestDistance) {
+      closestIndex = index;
+      closestDistance = distance;
+    }
+  });
+
+  return closestIndex;
+}
+
+function getServiceSnapTargetIndexForElement(el) {
+  const targets = getServiceSnapTargets();
+  if (!targets.length || !el?.closest) return -1;
+
+  const snapTarget = el.closest(
+    ".service-main > .service-hero, .service-main > .service-grid, .service-main > .service-packages, .service-main > .service-faq, .service-main > .service-cta, .service-main > .cases-section",
+  );
+
+  return targets.indexOf(snapTarget);
+}
+
+function getServicePanelKey(target, fallbackIndex = 0) {
+  if (!target) return "hero";
+  if (target.dataset.servicePanel) return target.dataset.servicePanel;
+  if (target.classList.contains("service-hero")) return "hero";
+  if (target.classList.contains("service-packages")) return "packages";
+  if (target.classList.contains("service-faq")) return "faq";
+  if (target.classList.contains("cases-section")) return "cases";
+  if (target.classList.contains("service-cta")) return "contact";
+  return `panel-${fallbackIndex}`;
+}
+
+function setServiceActivePanelState(index) {
+  if (!document.body.classList.contains("service-page")) return;
+
+  const targets = getServiceSnapTargets();
+  const clampedIndex = targets.length
+    ? Math.min(Math.max(index, 0), targets.length - 1)
+    : 0;
+  const panel = getServicePanelKey(targets[clampedIndex], clampedIndex);
+
+  document.documentElement.dataset.serviceActivePanel = panel;
+  document.body.dataset.serviceActivePanel = panel;
+}
+
+function goToServiceSnapIndex(index) {
+  const targets = getServiceSnapTargets();
+  if (!targets.length) return;
+
+  const nextIndex = Math.min(Math.max(index, 0), targets.length - 1);
+  const targetY = getServiceSnapY(targets[nextIndex]);
+
+  serviceSnapBusy = true;
+  serviceSnapIndex = nextIndex;
+  setServiceActivePanelState(nextIndex);
+  inputLockUntil = now() + (isMobile() ? MOBILE_SWIPE_LOCK_MS : SNAP_DUR * 1000);
+
+  if (isMobile()) {
+    window.scrollTo(0, targetY);
+
+    requestAnimationFrame(() => {
+      serviceSnapBusy = false;
+    });
+    return;
+  }
+
+  const dy = targetY - window.scrollY;
+  const tl = gsap.timeline({
+    onComplete: () => {
+      window.scrollTo(0, getServiceSnapY(targets[nextIndex]));
+      serviceSnapIndex = nextIndex;
+      setServiceActivePanelState(nextIndex);
+      servicePlusActiveIndex = nextIndex;
+      inputLockUntil = now() + 120;
+      applyServicePlusesInstant(nextIndex);
+
+      requestAnimationFrame(() => {
+        serviceSnapBusy = false;
+      });
+    },
+  });
+
+  tl.add(scrollToY(targetY, SNAP_DUR), 0);
+  animateServicePlusesToIndex(tl, nextIndex, dy, SNAP_DUR, 0);
+}
+
+function syncServiceSnapState() {
+  serviceSnapIndex = getNearestServiceSnapIndex();
+  setServiceActivePanelState(serviceSnapIndex);
+}
+
+function syncInitialServiceSnapFromHash() {
+  if (!isMobile()) {
+    syncServiceSnapState();
+    return;
+  }
+
+  const rawHash = window.location.hash.slice(1);
+  if (!rawHash) {
+    syncServiceSnapState();
+    return;
+  }
+
+  let id = rawHash;
+  try {
+    id = decodeURIComponent(rawHash);
+  } catch {}
+
+  const target = document.getElementById(id);
+  const index = getServiceSnapTargetIndexForElement(target);
+  if (index < 0) {
+    syncServiceSnapState();
+    return;
+  }
+
+  serviceSnapIndex = index;
+  setServiceActivePanelState(index);
+
+  requestAnimationFrame(() => {
+    window.scrollTo(0, getServiceSnapY(getServiceSnapTargets()[serviceSnapIndex]));
+  });
+}
+
+function shouldPinServiceMobileSnap() {
+  if (!isMobile() || serviceSnapBusy) return false;
+
+  const targets = getServiceSnapTargets();
+  if (!targets.length) return false;
+
+  const target = targets[serviceSnapIndex] || targets[getNearestServiceSnapIndex()];
+  if (!target) return false;
+
+  return Math.abs(window.scrollY - getServiceSnapY(target)) > 2;
+}
+
+function syncServiceFixedPluses() {
+  if (!document.body.classList.contains("service-page")) return;
+  if (hasHomeExperience) return;
+
+  const frame = document.querySelector(".service-frame");
+  if (!frame) return;
+
+  const pluses = Array.from(document.querySelectorAll(".service-plus"));
+  pluses.forEach((plus) => {
+    if (plus.parentElement !== document.body) {
+      document.body.appendChild(plus);
+    }
+    plus.dataset.servicePlusDocked = "1";
+  });
+}
+
+function getServicePlusKey(plus) {
+  if (plus.classList.contains("service-plus--tl")) return "tl";
+  if (plus.classList.contains("service-plus--tr")) return "tr";
+  if (plus.classList.contains("service-plus--bl")) return "bl";
+  if (plus.classList.contains("service-plus--br")) return "br";
+  return "";
+}
+
+function getServicePlusTargetRect(index) {
+  const targets = getServiceSnapTargets();
+  const target = targets[Math.min(Math.max(index, 0), targets.length - 1)];
+  if (!target) return null;
+
+  if (target.classList.contains("service-hero") || target.classList.contains("service-grid")) {
+    return document.querySelector(".service-frame")?.getBoundingClientRect() || null;
+  }
+
+  return target.getBoundingClientRect();
+}
+
+function getServicePlusCornerTargets(index, dy = 0) {
+  const rect = getServicePlusTargetRect(index);
+  if (!rect) return null;
+  const minTop = document.querySelector(".topbar")?.getBoundingClientRect().bottom || getHeaderOffset();
+  const top = rect.top - dy;
+  const bottom = rect.bottom - dy;
+
+  return {
+    tl: { left: rect.left, top: Math.max(top, minTop) },
+    tr: { left: rect.right, top: Math.max(top, minTop) },
+    bl: { left: rect.left, top: bottom },
+    br: { left: rect.right, top: bottom },
+  };
+}
+
+function moveServicePlusesToIndex(index, immediate = false, dy = 0) {
+  const targets = getServicePlusCornerTargets(index, dy);
+  if (!targets) return;
+
+  Array.from(document.querySelectorAll(".service-plus")).forEach((plus) => {
+    const key = getServicePlusKey(plus);
+    const target = targets[key];
+    if (!target) return;
+
+    plus.getAnimations?.().forEach((animation) => animation.cancel());
+
+    if (plus.parentElement !== document.body) {
+      const current = plus.getBoundingClientRect();
+      document.body.appendChild(plus);
+      gsap.set(plus, {
+        position: "fixed",
+        left: current.left,
+        top: current.top,
+        x: 0,
+        y: 0,
+        margin: 0,
+        zIndex: PLUS_Z,
+        opacity: 1,
+      });
+    }
+
+    plus.dataset.servicePlusDocked = "1";
+    plus.style.right = "";
+    plus.style.bottom = "";
+    plus.style.visibility = "";
+
+    if (immediate) {
+      gsap.set(plus, {
+        position: "fixed",
+        left: target.left,
+        top: target.top,
+        x: 0,
+        y: 0,
+        margin: 0,
+        zIndex: PLUS_Z,
+        opacity: 1,
+        clearProps: "transform",
+      });
+      return;
+    }
+
+    const current = plus.getBoundingClientRect();
+    gsap.set(plus, {
+      position: "fixed",
+      left: current.left,
+      top: current.top,
+      x: 0,
+      y: 0,
+      margin: 0,
+      zIndex: PLUS_Z,
+      opacity: 1,
+      clearProps: "transform",
+    });
+
+    gsap.to(plus, {
+      left: target.left,
+      top: target.top,
+      x: 0,
+      y: 0,
+      duration: 0.72,
+      ease: "power2.inOut",
+      overwrite: true,
+    });
+  });
+}
+
+function applyServicePlusesInstant(index) {
+  const targets = getServicePlusCornerTargets(index);
+  if (!targets) return;
+
+  Array.from(document.querySelectorAll(".service-plus")).forEach((plus) => {
+    const key = getServicePlusKey(plus);
+    const target = targets[key];
+    if (!target) return;
+
+    plus.getAnimations?.().forEach((animation) => animation.cancel());
+    gsap.killTweensOf(plus);
+
+    document.body.appendChild(plus);
+    plus.dataset.servicePlusDocked = "1";
+    plus.style.right = "";
+    plus.style.bottom = "";
+    plus.style.visibility = "";
+
+    gsap.set(plus, {
+      position: "fixed",
+      left: target.left,
+      top: target.top,
+      x: 0,
+      y: 0,
+      margin: 0,
+      zIndex: PLUS_Z,
+      opacity: 1,
+      clearProps: "transform",
+    });
+  });
+}
+
+function animateServicePlusesToIndex(tl, index, dy = 0, duration = SNAP_DUR, at = 0) {
+  const targets = getServicePlusCornerTargets(index, dy);
+  if (!targets) return;
+
+  Array.from(document.querySelectorAll(".service-plus")).forEach((plus) => {
+    const key = getServicePlusKey(plus);
+    const target = targets[key];
+    if (!target) return;
+
+    plus.getAnimations?.().forEach((animation) => animation.cancel());
+    gsap.killTweensOf(plus);
+
+    const start = normalizeFixedPosition(plus);
+    plus.dataset.servicePlusDocked = "1";
+
+    tl.to(
+      plus,
+      {
+        x: target.left - start.left,
+        y: target.top - start.top,
+        duration,
+        ease: "power2.inOut",
+      },
+      at,
+    );
+  });
+}
+
+function pulseServicePluses() {
+  if (!document.body.classList.contains("service-page")) return;
+
+  const offsets = {
+    "service-plus--tl": [18, 18],
+    "service-plus--tr": [-18, 18],
+    "service-plus--bl": [18, -18],
+    "service-plus--br": [-18, -18],
+  };
+
+  document.querySelectorAll(".service-plus").forEach((plus, index) => {
+    const className = Object.keys(offsets).find((name) => plus.classList.contains(name));
+    const [x, y] = offsets[className] || [0, 0];
+
+    plus.getAnimations?.().forEach((animation) => animation.cancel());
+    plus.animate?.(
+      [
+        { transform: `translate(${x}px, ${y}px) rotate(${index % 2 ? -70 : 70}deg) scale(.58)` },
+        { transform: "translate(0, 0) rotate(0deg) scale(1.12)", offset: 0.72 },
+        { transform: "translate(0, 0) rotate(0deg) scale(1)" },
+      ],
+      {
+        duration: isMobile() ? 420 : 560,
+        easing: "cubic-bezier(.2,.8,.2,1)",
+      },
+    );
+  });
+}
+
+function syncServicePlusAnimation(force = false) {
+  if (!document.body.classList.contains("service-page")) return;
+  if (isMobile()) return;
+  if (serviceSnapBusy) return;
+
+  const nextIndex = getNearestServiceSnapIndex();
+  if (!force && nextIndex === servicePlusActiveIndex) return;
+
+  servicePlusActiveIndex = nextIndex;
+  if (force) {
+    applyServicePlusesInstant(nextIndex);
+  } else {
+    moveServicePlusesToIndex(nextIndex);
+  }
+}
+
+function bindServicePlusAnimation() {
+  if (!document.body.classList.contains("service-page")) return;
+  if (hasHomeExperience) return;
+  if (document.documentElement.dataset.servicePlusAnimationBound === "1") return;
+  document.documentElement.dataset.servicePlusAnimationBound = "1";
+
+  const requestSync = () => {
+    if (servicePlusRaf) return;
+    servicePlusRaf = requestAnimationFrame(() => {
+      servicePlusRaf = 0;
+      if (serviceSnapBusy) return;
+      syncServicePlusAnimation();
+    });
+  };
+
+  syncServicePlusAnimation(true);
+  window.addEventListener("scroll", requestSync, { passive: true });
+  window.addEventListener(
+    "resize",
+    () => {
+      servicePlusActiveIndex = -1;
+      syncServiceFixedPluses();
+      requestSync();
+    },
+    { passive: true },
+  );
+}
+
+function bindServiceFixedPluses() {
+  if (!document.body.classList.contains("service-page")) return;
+  if (hasHomeExperience) return;
+  if (document.documentElement.dataset.servicePlusesBound === "1") return;
+  document.documentElement.dataset.servicePlusesBound = "1";
+
+  syncServiceFixedPluses();
+  window.addEventListener("resize", syncServiceFixedPluses, { passive: true });
+}
+
+function bindServiceDesktopWheelSnap() {
+  if (!document.body.classList.contains("service-page")) return;
+  if (hasHomeExperience) return;
+  if (document.documentElement.dataset.serviceDesktopWheelBound === "1") return;
+  document.documentElement.dataset.serviceDesktopWheelBound = "1";
+
+  const isMenuOpen = () => document.body.classList.contains("menu-open");
+
+  window.addEventListener(
+    "wheel",
+    (e) => {
+      if (isMobile() || isMenuOpen()) return;
+      if (e.deltaY === 0) return;
+      if (getServiceSnapTargets().length < 2) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (serviceSnapBusy || now() < inputLockUntil) return;
+
+      syncServiceSnapState();
+      goToServiceSnapIndex(serviceSnapIndex + (e.deltaY > 0 ? 1 : -1));
+    },
+    { passive: false },
+  );
+
+  window.addEventListener(
+    "resize",
+    () => {
+      if (isMobile()) return;
+      syncServiceSnapState();
+      moveServicePlusesToIndex(serviceSnapIndex, true);
+    },
+    { passive: true },
+  );
+}
+
+function bindServiceMobileSwipeSnap() {
+  if (!document.body.classList.contains("service-page")) return;
+  if (hasHomeExperience) return;
+  if (document.documentElement.dataset.serviceMobileSwipeBound === "1") return;
+  document.documentElement.dataset.serviceMobileSwipeBound = "1";
+
+  const isMenuOpen = () => document.body.classList.contains("menu-open");
+  const shouldIgnoreSwipeTarget = (target) =>
+    Boolean(
+      target?.closest?.(
+        "input, textarea, select, iframe, .service-grid .service-section, .service-package-rail, .service-package-grid, .service-package, .service-packages__arrow, .case-grid--inline, .case-card, .mobile-menu, .mobile-menu-backdrop, .menu-toggle",
+      ),
+    );
+
+  document.querySelectorAll('body.service-page a[href^="#"]').forEach((link) => {
+    if (link.dataset.serviceSnapLinkBound === "1") return;
+    link.dataset.serviceSnapLinkBound = "1";
+
+    link.addEventListener("click", (e) => {
+      const href = link.getAttribute("href");
+      if (!href || href === "#") return;
+
+      const target = document.querySelector(href);
+      if (!target) return;
+
+      const index = getServiceSnapTargetIndexForElement(target);
+      if (index < 0) return;
+
+      e.preventDefault();
+      history.pushState(null, "", href);
+      goToServiceSnapIndex(index);
+    });
+  });
+
+  window.addEventListener(
+    "wheel",
+    (e) => {
+      if (!isMobile() || isMenuOpen()) return;
+      const targets = getServiceSnapTargets();
+      if (targets.length < 2) return;
+
+      const absY = Math.abs(e.deltaY);
+      if (absY < 12) return;
+
+      e.preventDefault();
+
+      if (serviceSnapBusy || now() < inputLockUntil) return;
+
+      syncServiceSnapState();
+      goToServiceSnapIndex(serviceSnapIndex + (e.deltaY > 0 ? 1 : -1));
+    },
+    { passive: false },
+  );
+
+  window.addEventListener(
+    "touchstart",
+    (e) => {
+      if (!isMobile() || isMenuOpen()) return;
+      if (e.touches.length !== 1) return;
+      if (shouldIgnoreSwipeTarget(e.target)) return;
+      if (getServiceSnapTargets().length < 2) return;
+
+      const touch = e.touches[0];
+      serviceTouchStartY = touch.clientY;
+      serviceTouchStartX = touch.clientX;
+      serviceTouchActive = true;
+      serviceTouchLockedAxis = "";
+      syncServiceSnapState();
+    },
+    { passive: true },
+  );
+
+  window.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!serviceTouchActive || !isMobile() || isMenuOpen()) return;
+      if (e.touches.length !== 1) return;
+      if (shouldIgnoreSwipeTarget(e.target)) return;
+
+      e.preventDefault();
+
+      const touch = e.touches[0];
+      const deltaY = touch.clientY - serviceTouchStartY;
+      const deltaX = touch.clientX - serviceTouchStartX;
+
+      if (!serviceTouchLockedAxis && (Math.abs(deltaY) > 8 || Math.abs(deltaX) > 8)) {
+        serviceTouchLockedAxis = Math.abs(deltaY) > Math.abs(deltaX) ? "y" : "x";
+      }
+    },
+    { passive: false },
+  );
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (!isMobile() || isMenuOpen()) return;
+      if (shouldPinServiceMobileSnap()) {
+        window.scrollTo(0, getServiceSnapY(getServiceSnapTargets()[serviceSnapIndex]));
+      }
+    },
+    { passive: true },
+  );
+
+  window.addEventListener(
+    "touchend",
+    (e) => {
+      if (!serviceTouchActive || !isMobile() || isMenuOpen()) return;
+      serviceTouchActive = false;
+
+      if (serviceSnapBusy || now() < inputLockUntil) return;
+      if (shouldIgnoreSwipeTarget(e.target)) return;
+
+      const touch = e.changedTouches?.[0];
+      if (!touch) return;
+
+      const deltaY = touch.clientY - serviceTouchStartY;
+      const deltaX = touch.clientX - serviceTouchStartX;
+
+      if (Math.abs(deltaY) < MOBILE_SWIPE_MIN) return;
+      if (Math.abs(deltaY) <= Math.abs(deltaX)) return;
+
+      syncServiceSnapState();
+      goToServiceSnapIndex(serviceSnapIndex + (deltaY < 0 ? 1 : -1));
+    },
+    { passive: true },
+  );
+
+  window.addEventListener(
+    "resize",
+    () => {
+      if (!isMobile()) return;
+      syncServiceSnapState();
+      window.scrollTo(0, getServiceSnapY(getServiceSnapTargets()[serviceSnapIndex]));
+    },
+    { passive: true },
+  );
+
+  syncInitialServiceSnapFromHash();
 }
 
 function hasSeenMobileSwipeHint() {
@@ -1064,8 +1736,11 @@ function bindMobileModules() {
 
       const clickedHead = e.target.closest(".module-head");
       const clickedStrip = e.target.closest(".module-strip");
+      const clickedStripLink = e.target.closest(".module-strip__link");
       const clickedBody = e.target.closest(".module-body");
       const isOpen = module.classList.contains("is-open");
+
+      if (clickedStripLink) return;
 
       if (isOpen) {
         if (!clickedHead && !clickedStrip) return;
@@ -1089,6 +1764,67 @@ function bindMobileModules() {
   });
 }
 
+function bindServiceOverviewModules() {
+  if (!document.body.classList.contains("service-page")) return;
+
+  document.querySelectorAll(".service-grid .service-section").forEach((section) => {
+    if (section.dataset.serviceModuleBound === "1") return;
+    section.dataset.serviceModuleBound = "1";
+
+    const syncInteractiveState = () => {
+      if (isMobile()) {
+        section.setAttribute("role", "button");
+        section.setAttribute("tabindex", "0");
+        section.setAttribute(
+          "aria-expanded",
+          section.classList.contains("is-open") ? "true" : "false",
+        );
+        return;
+      }
+
+      section.classList.remove("is-open");
+      section.removeAttribute("role");
+      section.removeAttribute("tabindex");
+      section.removeAttribute("aria-expanded");
+    };
+
+    syncInteractiveState();
+    window.addEventListener("resize", syncInteractiveState, { passive: true });
+
+    const closeSiblings = () => {
+      section.closest(".service-grid")?.querySelectorAll(".service-section.is-open").forEach((other) => {
+        if (other === section) return;
+        other.classList.remove("is-open");
+        other.setAttribute("aria-expanded", "false");
+      });
+    };
+
+    const toggle = () => {
+      if (!isMobile()) return;
+
+      const willOpen = !section.classList.contains("is-open");
+      closeSiblings();
+      section.classList.toggle("is-open", willOpen);
+      section.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    };
+
+    section.addEventListener("click", (e) => {
+      if (!isMobile()) return;
+      if (e.target.closest("a, button, input, textarea, select, label")) return;
+
+      e.preventDefault();
+      toggle();
+    });
+
+    section.addEventListener("keydown", (e) => {
+      if (!isMobile()) return;
+      if (e.key !== "Enter" && e.key !== " ") return;
+
+      e.preventDefault();
+      toggle();
+    });
+  });
+}
 function bindMobileMenu() {
   const menuToggle = document.getElementById("menuToggle");
   const mobileMenu = document.getElementById("mobileMenu");
@@ -1251,6 +1987,7 @@ gsap.set(logoPrintFxEl, {
     introFinished = true;
 
     showIntroUi();
+    markIntroSeen();
     document.body.classList.add("intro-complete");
     gsap.set(logoPrintFxEl, { opacity: 0 });
     gsap.set(logoMountEl, { opacity: 1 });
@@ -1379,6 +2116,35 @@ tl.to(
   tl.to(landingEl, { autoAlpha: 0, duration: 0.1, ease: "none" }, INTRO_LAND);
 }
 
+function completeIntroWithoutAnimation() {
+  if (introPlayed) return;
+  introPlayed = true;
+
+  document.body.classList.remove("is-intro");
+  document.body.classList.add("intro-complete");
+  lockScroll(false);
+
+  gsap.set(landingEl, { autoAlpha: 0, "--landingA": 0 });
+  gsap.set(landingPlusEls, { opacity: 0, x: 0, y: 0, clearProps: "transform" });
+  gsap.set([brandLogoEl, introLogoEl, logoPrintFxEl], { opacity: 0 });
+  gsap.set(logoMountEl, { opacity: 1 });
+
+  snapState = SECTION.HERO;
+  setActiveSectionState(SECTION.HERO);
+  settlePluses(SECTION.HERO);
+
+  if (isMobile()) {
+    mobileFrozenPlusTargets = captureCurrentPlusTargets();
+  }
+
+  bindDesktopWheelSnap();
+
+  requestAnimationFrame(() => {
+    refreshResponsiveLayout();
+    showMobileSwipeHint();
+  });
+}
+
 let resizeTimer = 0;
 function dockPlusesToSection(section) {
   const container = getPlusDockContainer(section);
@@ -1481,6 +2247,204 @@ function bindFaqAccordion() {
   });
 }
 
+function bindServiceContactForm() {
+  const forms = Array.from(document.querySelectorAll(".service-contact-form"));
+
+  if (new URLSearchParams(window.location.search).get("contact") === "sent") {
+    document.querySelectorAll("[data-contact-status]").forEach((statusEl) => {
+      statusEl.hidden = false;
+    });
+  }
+
+  document.querySelectorAll("[data-package-choice]").forEach((link) => {
+    if (link.dataset.packageBound === "1") return;
+
+    link.dataset.packageBound = "1";
+    link.addEventListener("click", () => {
+      const selectedPackage = link.dataset.packageChoice || "";
+      if (!selectedPackage) return;
+
+      const form = forms[0];
+      const packageSelect = form?.querySelector('select[name="pakket"]');
+      const subjectInput = form?.querySelector('input[name="_subject"]');
+
+      if (packageSelect) {
+        packageSelect.value = selectedPackage;
+        packageSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      if (subjectInput) {
+        const baseSubject = subjectInput.value.replace(/\s+-\s+.*$/, "");
+        subjectInput.value = `${baseSubject} - ${selectedPackage}`;
+      }
+    });
+  });
+}
+
+function bindPackageScroller() {
+  const packageSections = Array.from(document.querySelectorAll(".service-packages"));
+  if (!packageSections.length) return;
+
+  packageSections.forEach((section) => {
+    const rail = section.querySelector(".service-package-grid");
+    const arrow = section.querySelector(".service-packages__arrow");
+    if (!rail || !arrow || arrow.dataset.bound === "1") return;
+
+    arrow.dataset.bound = "1";
+
+    let scrollDirection = 1;
+
+    const getPackages = () => Array.from(rail.querySelectorAll(".service-package"));
+
+    const getStep = () => {
+      const firstPackage = getPackages()[0];
+      if (!firstPackage) return rail.clientWidth;
+
+      const styles = window.getComputedStyle(rail);
+      const gap = Number.parseFloat(styles.columnGap) || 0;
+      return Math.max(1, firstPackage.getBoundingClientRect().width + gap);
+    };
+
+    const getVisibleCount = () => Math.max(1, Math.round(rail.clientWidth / getStep()));
+    const getMaxIndex = () => Math.max(0, getPackages().length - getVisibleCount());
+    const getCurrentIndex = () =>
+      Math.min(getMaxIndex(), Math.max(0, Math.round(rail.scrollLeft / getStep())));
+
+    const updateArrow = () => {
+      const currentIndex = getCurrentIndex();
+      const maxIndex = getMaxIndex();
+
+      if (currentIndex <= 0) scrollDirection = 1;
+      if (currentIndex >= maxIndex) scrollDirection = -1;
+
+      arrow.disabled = maxIndex === 0;
+      arrow.classList.toggle("is-at-end", scrollDirection < 0);
+      arrow.setAttribute(
+        "aria-label",
+        scrollDirection < 0 ? "Bekijk vorig pakket" : "Bekijk volgend pakket",
+      );
+    };
+
+    let scrollFrame = null;
+
+    rail.addEventListener(
+      "scroll",
+      () => {
+        if (scrollFrame) return;
+        scrollFrame = window.requestAnimationFrame(() => {
+          scrollFrame = null;
+          updateArrow();
+        });
+      },
+      { passive: true },
+    );
+
+    arrow.addEventListener("click", () => {
+      const currentIndex = getCurrentIndex();
+      const maxIndex = getMaxIndex();
+      if (maxIndex === 0) return;
+
+      if (currentIndex <= 0) scrollDirection = 1;
+      if (currentIndex >= maxIndex) scrollDirection = -1;
+
+      const targetIndex = Math.min(
+        maxIndex,
+        Math.max(0, currentIndex + scrollDirection),
+      );
+
+      rail.scrollTo({
+        left: targetIndex * getStep(),
+        behavior: "smooth",
+      });
+    });
+
+    window.addEventListener("resize", updateArrow);
+    updateArrow();
+  });
+}
+
+function bindCaseRailScroller() {
+  const caseRails = Array.from(document.querySelectorAll(".case-rail"));
+  if (!caseRails.length) return;
+
+  caseRails.forEach((section) => {
+    const rail = section.querySelector(".case-grid--inline");
+    const arrow = section.querySelector(".case-rail__arrow");
+    if (!rail || !arrow || arrow.dataset.bound === "1") return;
+
+    arrow.dataset.bound = "1";
+
+    let scrollDirection = 1;
+
+    const getCards = () => Array.from(rail.querySelectorAll(".case-card"));
+
+    const getStep = () => {
+      const firstCard = getCards()[0];
+      if (!firstCard) return rail.clientWidth;
+
+      const styles = window.getComputedStyle(rail);
+      const gap = Number.parseFloat(styles.columnGap) || 0;
+      return Math.max(1, firstCard.getBoundingClientRect().width + gap);
+    };
+
+    const getVisibleCount = () => Math.max(1, Math.round(rail.clientWidth / getStep()));
+    const getMaxIndex = () => Math.max(0, getCards().length - getVisibleCount());
+    const getCurrentIndex = () =>
+      Math.min(getMaxIndex(), Math.max(0, Math.round(rail.scrollLeft / getStep())));
+
+    const updateArrow = () => {
+      const currentIndex = getCurrentIndex();
+      const maxIndex = getMaxIndex();
+
+      if (currentIndex <= 0) scrollDirection = 1;
+      if (currentIndex >= maxIndex) scrollDirection = -1;
+
+      arrow.disabled = maxIndex === 0;
+      arrow.classList.toggle("is-at-end", scrollDirection < 0);
+      arrow.setAttribute(
+        "aria-label",
+        scrollDirection < 0 ? "Bekijk vorige case" : "Bekijk volgende case",
+      );
+    };
+
+    let scrollFrame = null;
+
+    rail.addEventListener(
+      "scroll",
+      () => {
+        if (scrollFrame) return;
+        scrollFrame = window.requestAnimationFrame(() => {
+          scrollFrame = null;
+          updateArrow();
+        });
+      },
+      { passive: true },
+    );
+
+    arrow.addEventListener("click", () => {
+      const currentIndex = getCurrentIndex();
+      const maxIndex = getMaxIndex();
+      if (maxIndex === 0) return;
+
+      if (currentIndex <= 0) scrollDirection = 1;
+      if (currentIndex >= maxIndex) scrollDirection = -1;
+
+      const targetIndex = Math.min(
+        maxIndex,
+        Math.max(0, currentIndex + scrollDirection),
+      );
+
+      rail.scrollTo({
+        left: targetIndex * getStep(),
+        behavior: "smooth",
+      });
+    });
+
+    window.addEventListener("resize", updateArrow);
+    updateArrow();
+  });
+}
+
 function setupProjectsLazyLoader() {
   const projectsEl = getSectionElement(SECTION.PROJECTS);
   if (!projectsEl || !document.getElementById("projectsCanvas")) return;
@@ -1565,6 +2529,15 @@ function setupProjectsVideoFallback() {
 }
 
 async function boot() {
+  const shouldSkipHomeIntro = hasHomeExperience && hasSeenIntro();
+
+  if (shouldSkipHomeIntro) {
+    document.body.classList.add("intro-complete");
+    landingEl.style.opacity = "0";
+    landingEl.style.visibility = "hidden";
+    landingEl.style.pointerEvents = "none";
+  }
+
   await Promise.all(
     [brandLogoEl, introLogoEl].filter(Boolean).map(async (img) => {
       try {
@@ -1583,16 +2556,38 @@ async function boot() {
   syncMountSize();
   syncPrintFxSize();
 
-  bindMobileModules();
   bindMobileMenu();
   bindScrollTriggers();
+  bindResizeHandling();
+  bindFaqAccordion();
+  bindServiceOverviewModules();
+  bindServiceContactForm();
+  bindPackageScroller();
+  bindCaseRailScroller();
+  bindServiceFixedPluses();
+  bindServicePlusAnimation();
+  bindServiceDesktopWheelSnap();
+  bindServiceMobileSwipeSnap();
+  setupProjectsVideoFallback();
+  setupProjectsLazyLoader();
+
+  if (!hasHomeExperience) {
+    markIntroSeen();
+    document.body.classList.add("intro-complete");
+    return;
+  }
+
+  bindMobileModules();
   bindMobileSwipeSnap();
   bindMobileSwipeHint();
   bindDesktopSectionSync();
-  bindResizeHandling();
-  bindFaqAccordion();
-  setupProjectsVideoFallback();
-  setupProjectsLazyLoader();
+
+  if (shouldSkipHomeIntro) {
+    requestAnimationFrame(() => {
+      completeIntroWithoutAnimation();
+    });
+    return;
+  }
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {

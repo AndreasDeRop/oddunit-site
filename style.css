@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap");
 @font-face {
   font-family: "Medium";
   src: url("/fonts/medium.otf") format("opentype");
@@ -8,6 +8,7 @@
 } /* ========================================================= ROOT / TOKENS ========================================================= */
 html {
   scrollbar-gutter: stable;
+  overscroll-behavior-y: none;
 }
 :root {
   --font-display: "Medium", sans-serif;
@@ -133,6 +134,7 @@ video {
 a {
   color: inherit;
 }
+
 button,
 input,
 textarea,
@@ -234,10 +236,10 @@ body::after {
   height: 100%;
   margin: 0;
   padding: 0;
-  display: block;
-  --navProjectW: 11.2em;
-  --navSocialW: 8.06em;
-  --navTextGap: clamp(5px, calc((var(--navLinksW) / 2 - 20.9em) / 1.5), 52px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 2vw, 44px);
   font-family: var(--font-display);
   font-size: var(--navLinkSize);
   letter-spacing: 0.18em;
@@ -245,7 +247,7 @@ body::after {
   text-align: center;
 }
 .nav-links a {
-  position: absolute;
+  position: static;
   top: 0;
   display: flex;
   align-items: center;
@@ -851,6 +853,26 @@ body.is-intro .mobile-menu-backdrop {
   z-index: 4;
   transition: top 0.22s var(--ease);
 }
+.module-strip__link {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0a0a0a;
+  font-family: var(--font-jet);
+  font-size: clamp(10px, calc(var(--frameW) * 0.0078), 14px);
+  line-height: 1;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  text-decoration: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(5px);
+  transition:
+    opacity 0.16s var(--ease),
+    transform 0.2s var(--ease);
+}
 .module-body {
   position: absolute;
   left: 0;
@@ -901,6 +923,23 @@ body.is-intro .mobile-menu-backdrop {
 .module-body b {
   color: var(--orange);
 }
+.module-body__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(30px, calc(var(--frameH) * 0.044), 42px);
+  margin-top: clamp(10px, calc(var(--frameH) * 0.014), 16px);
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--purple);
+  border: 2px solid var(--bg);
+  color: var(--bg);
+  font-family: var(--font-jet);
+  font-size: clamp(10px, calc(var(--frameW) * 0.0078), 14px);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
 .module-icon {
   --icon: clamp(14px, calc(var(--frameW) * 0.0095), 20px);
   --stroke: clamp(2px, calc(var(--frameW) * 0.0016), 3px);
@@ -911,7 +950,9 @@ body.is-intro .mobile-menu-backdrop {
   display: block;
   transform: translateY(-2px) rotate(0deg);
   transform-origin: 50% 50%;
-  transition: transform 0.18s var(--ease);
+  transition:
+    opacity 0.16s var(--ease),
+    transform 0.18s var(--ease);
 }
 
 .module-icon::before,
@@ -955,7 +996,13 @@ body.is-intro .mobile-menu-backdrop {
     clip-path: inset(0 0 0 0);
     pointer-events: auto;
   }
+  .module:hover .module-strip__link {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
   .module:hover .module-icon {
+    opacity: 0;
     transform: translateY(-2px) rotate(45deg);
   }
 
@@ -1009,6 +1056,15 @@ body.is-intro .mobile-menu-backdrop {
   overflow: hidden;
   pointer-events: none;
   min-height: 0;
+}
+.projects-canvas-cell--empty {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgb(255 107 0 / 0.12) 0 2px,
+      transparent 2px 18px
+    ),
+    var(--bg);
 }
 #projectsCanvas {
   position: absolute;
@@ -1192,6 +1248,23 @@ body.is-intro .mobile-menu-backdrop {
   background: var(--purple);
   color: var(--bg);
 }
+.case-detail-actions {
+  display: grid;
+  gap: 10px;
+}
+.case-back {
+  width: max-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  color: var(--orange);
+  font-family: var(--font-jet);
+  font-size: clamp(10px, 0.72vw, 13px);
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
 .projects-dots {
   display: flex;
   gap: 10px;
@@ -1245,9 +1318,9 @@ body.is-intro .mobile-menu-backdrop {
 }
 /* ========================================================= PROJECTS ========================================================= */
 
-/* ───────────────────────────────────────────── */
-/* PAGE 3 (SOCIALS) — desktop schaalbaar */
-/* ───────────────────────────────────────────── */
+/* --------------------------------------------- */
+/* PAGE 3 (SOCIALS) - desktop schaalbaar */
+/* --------------------------------------------- */
 
 .socials {
   position: relative;
@@ -2910,7 +2983,7 @@ body.is-intro .mobile-menu-backdrop {
     display: none !important;
   }
   .hero-scroll::before {
-    content: "⌄";
+    content: "\2304";
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -3065,6 +3138,10 @@ body.is-intro .mobile-menu-backdrop {
       background 0.18s var(--ease),
       height 0.22s var(--ease);
   }
+  .module-strip__link {
+    font-size: clamp(9px, 2.4vw, 11px) !important;
+    letter-spacing: 0.1em !important;
+  }
   .module-body {
     top: 0 !important;
     bottom: 26px !important;
@@ -3096,10 +3173,19 @@ body.is-intro .mobile-menu-backdrop {
     background: #0a0a0a !important;
     border-top: var(--line-w) solid var(--orange);
   }
+  .module.is-open .module-strip__link {
+    color: var(--orange) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateY(0) !important;
+  }
   .module-icon {
-    transition: transform 0.18s var(--ease);
+    transition:
+      opacity 0.16s var(--ease),
+      transform 0.18s var(--ease);
   }
   .module.is-open .module-icon {
+    opacity: 0;
     transform: translateY(-2px) rotate(45deg);
   }
 
@@ -3154,7 +3240,7 @@ body.is-intro .mobile-menu-backdrop {
   .projects-scroll::before,
   .socials-scroll::before,
   .contact-scroll::before {
-    content: "⌄";
+    content: "\2304";
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -3274,6 +3360,20 @@ body.is-intro .mobile-menu-backdrop {
     letter-spacing: 0.08em;
     border-radius: 999px;
     z-index: calc(var(--z-frame) + 7);
+  }
+  .case-detail-page .projects-cta {
+    position: static;
+    width: 100%;
+    min-height: 38px;
+    height: auto;
+    margin: 0;
+  }
+  .case-detail-page .case-detail-actions {
+    gap: 8px;
+  }
+  .case-detail-page .case-back {
+    font-size: 9px;
+    letter-spacing: 0.08em;
   }
   .projects-dots {
     gap: 6px;
@@ -3682,6 +3782,10 @@ body.is-intro .mobile-menu-backdrop {
   visibility: hidden;
   pointer-events: none;
   transform: translateX(-20px);
+}
+
+.faq-item.is-open .faq-question {
+  background: transparent;
 }
 
 .faq-item.is-open .faq-answer {
