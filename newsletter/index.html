@@ -16,13 +16,6 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta property="og:url" content="https://oddunit.be/newsletter/" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap"
-      rel="stylesheet"
-    />
-
     <style>
       @font-face {
         font-family: "Medium";
@@ -34,8 +27,8 @@
 
       :root {
         --font-display: "Medium", sans-serif;
-        --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-        --font-jet: "JetBrains Mono", monospace;
+        --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --font-jet: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
         --bg: #070707;
         --orange: #ff6b00;
@@ -673,6 +666,7 @@
         }
       }
     </style>
+    <script defer src="/cookie-consent.js"></script>
   </head>
 
   <body>
@@ -750,13 +744,11 @@
             </div>
 
             <div class="embed-shell">
-              <div class="eo-form-wrapper" id="eoFormWrapper">
-                <script
-                  async
-                  src="https://eomail5.com/form/a5a3e4e4-2949-11f1-8c74-3dee128eaf66.js"
-                  data-form="a5a3e4e4-2949-11f1-8c74-3dee128eaf66"
-                ></script>
-              </div>
+              <div
+                class="eo-form-wrapper"
+                id="eoFormWrapper"
+                data-eo-form="a5a3e4e4-2949-11f1-8c74-3dee128eaf66"
+              ></div>
 
               <p class="embed-note">
                 Door je in te schrijven ga je akkoord met communicatie van ODD
@@ -768,6 +760,7 @@
       </main>
     </div>
 
+    <script defer src="/newsletter-embed.js"></script>
     <script>
       (() => {
         const menuToggle = document.getElementById("menuToggle");
