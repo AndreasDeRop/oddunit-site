@@ -1,56 +1,66 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
+>
   <url>
     <loc>https://oddunit.be/</loc>
-    <lastmod>2026-06-02</lastmod>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://oddunit.be/services/webdesign-aalst/</loc>
-    <lastmod>2026-06-02</lastmod>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://oddunit.be/services/branding-aalst/</loc>
-    <lastmod>2026-06-02</lastmod>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://oddunit.be/services/3d-printen-aalst/</loc>
-    <lastmod>2026-06-02</lastmod>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://oddunit.be/cases/</loc>
-    <lastmod>2026-06-02</lastmod>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://oddunit.be/cases/fons/</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+    <video:video>
+      <video:thumbnail_loc>https://oddunit.be/projects/fons-poster.webp</video:thumbnail_loc>
+      <video:title>Fons resin art toy video</video:title>
+      <video:description>Korte video van Fons, de eerste resin art toy van OddUnit Studio, als handgemaakt karakterobject.</video:description>
+      <video:content_loc>https://oddunit.be/projects/fons-loop.webm</video:content_loc>
+      <video:publication_date>2026-05-18T14:10:29+02:00</video:publication_date>
+    </video:video>
   </url>
   <url>
     <loc>https://oddunit.be/newsletter/</loc>
-    <lastmod>2026-06-02</lastmod>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://oddunit.be/privacy/</loc>
-    <lastmod>2026-09-13</lastmod>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
     <loc>https://oddunit.be/cookies/</loc>
-    <lastmod>2026-09-13</lastmod>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>

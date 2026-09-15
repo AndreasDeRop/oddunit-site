@@ -26,6 +26,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="/services/service-pages.css" />
+    <link rel="stylesheet" href="/legal-pages.css" />
     <script defer src="/cookie-consent.js"></script>
   </head>
 
@@ -82,83 +83,111 @@
 
     <main class="service-main legal-main">
       <article class="legal-frame">
+        <span class="service-plus service-plus--tl" aria-hidden="true">+</span>
+        <span class="service-plus service-plus--tr" aria-hidden="true">+</span>
+        <span class="service-plus service-plus--bl" aria-hidden="true">+</span>
+        <span class="service-plus service-plus--br" aria-hidden="true">+</span>
+
         <header class="legal-hero">
-          <p class="service-kicker">COOKIES</p>
-          <h1>Cookiebeleid</h1>
-          <p>
-            Laatst bijgewerkt op 13 september 2026. We gebruiken zo weinig
-            mogelijk opslag en laden analytics alleen na toestemming.
-          </p>
+          <div class="legal-hero__content">
+            <p class="service-kicker">COOKIES / TRACKING</p>
+            <h1>Cookie beleid</h1>
+            <p>
+              We gebruiken zo weinig mogelijk opslag. Analytics en externe
+              formulieren laden pas wanneer jij daar bewust voor kiest.
+            </p>
+          </div>
+          <aside class="legal-hero__side" aria-label="Cookie samenvatting">
+            <span class="legal-stamp">UPDATE 13.09.2026</span>
+            <p>
+              Noodzakelijke opslag houdt de site werkbaar. Google Analytics
+              blijft uit tot je analytics accepteert.
+            </p>
+            <div class="legal-actions">
+              <button class="legal-pill legal-pill--primary" type="button" data-cookie-settings>
+                COOKIEKEUZE
+              </button>
+              <a class="legal-pill legal-pill--outline" href="/privacy/">
+                PRIVACY
+              </a>
+            </div>
+          </aside>
         </header>
 
-        <section class="legal-section">
-          <h2>Noodzakelijke opslag</h2>
+        <section class="legal-statement">
+          <span>kort gezegd</span>
           <p>
-            De site gebruikt noodzakelijke opslag om je cookievoorkeur te
-            onthouden en om de interface goed te laten werken, bijvoorbeeld de
-            intro-status of mobiele swipe-hint. Deze opslag is functioneel en
-            nodig voor een normale website-ervaring.
+            Er is geen verborgen marketinglaag. Zonder analytics-toestemming
+            laden we geen Google Analytics of Tag Manager. De nieuwsbrief embed
+            laadt pas nadat je zelf op "Laad formulier" klikt.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2>Analytics</h2>
-          <p>
-            Als je analytics accepteert, laden Google Analytics en Google Tag
-            Manager. Daarmee bekijken we geaggregeerd welke pagina's bezocht
-            worden en hoe de site beter kan. Zonder toestemming laden deze
-            Google-scripts niet.
-          </p>
-        </section>
+        <div class="legal-grid legal-grid--cookies">
+          <section class="legal-card" data-index="01">
+            <h2>Noodzakelijk</h2>
+            <p>
+              We onthouden je cookievoorkeur en enkele interfacekeuzes, zoals
+              de intro-status of mobiele swipe-hint. Dat houdt de site bruikbaar.
+            </p>
+          </section>
 
-        <section class="legal-section">
-          <h2>Nieuwsbrief formulier</h2>
-          <p>
-            Het nieuwsbrief formulier wordt niet automatisch geladen. Pas als
-            je op "Laad formulier" klikt, laden we EmailOctopus. Die dienst kan
-            Google reCAPTCHA gebruiken om misbruik van het formulier te
-            beperken.
-          </p>
-        </section>
+          <section class="legal-card" data-index="02">
+            <h2>Analytics</h2>
+            <p>
+              Na acceptatie laden Google Analytics en Google Tag Manager. Zo
+              zien we geaggregeerd welke pagina's werken en waar we kunnen
+              verbeteren.
+            </p>
+          </section>
 
-        <section class="legal-section">
-          <h2>Overzicht</h2>
-          <dl class="legal-list">
-            <div>
-              <dt>oddunit.cookieConsent.v1</dt>
-              <dd>Onthoudt je cookiekeuze. Maximaal zes maanden.</dd>
-            </div>
-            <div>
-              <dt>oddunit.introSeen.v1</dt>
-              <dd>Onthoudt tijdelijk of de intro al getoond is. Sessie-opslag.</dd>
-            </div>
-            <div>
-              <dt>oddunit.mobileSwipeHintSeen.v2</dt>
-              <dd>Onthoudt of de mobiele swipe-hint al getoond is.</dd>
-            </div>
-            <div>
-              <dt>_ga en _ga_*</dt>
-              <dd>Google Analytics cookies. Alleen na analytics-toestemming.</dd>
-            </div>
-            <div>
-              <dt>EmailOctopus / reCAPTCHA</dt>
-              <dd>
-                Mogelijke opslag door het nieuwsbrief formulier. Alleen nadat
-                je het formulier zelf laadt.
-              </dd>
-            </div>
-          </dl>
-        </section>
+          <section class="legal-card" data-index="03">
+            <h2>Nieuwsbrief</h2>
+            <p>
+              Het formulier wordt pas geladen via EmailOctopus wanneer je op
+              "Laad formulier" klikt. Die dienst kan Google reCAPTCHA gebruiken.
+            </p>
+          </section>
 
-        <section class="legal-section">
-          <h2>Je keuze aanpassen</h2>
-          <p>
-            Je kan je analytics-keuze altijd aanpassen via
-            <button class="legal-inline-button" type="button" data-cookie-settings>
-              cookie-instellingen
-            </button>.
-          </p>
-        </section>
+          <section class="legal-card legal-card--list" data-index="04">
+            <h2>Overzicht</h2>
+            <dl class="legal-list">
+              <div>
+                <dt>oddunit.cookieConsent.v1</dt>
+                <dd>Onthoudt je cookiekeuze. Maximaal zes maanden.</dd>
+              </div>
+              <div>
+                <dt>oddunit.introSeen.v1</dt>
+                <dd>Onthoudt tijdelijk of de intro al getoond is.</dd>
+              </div>
+              <div>
+                <dt>oddunit.mobileSwipeHintSeen.v2</dt>
+                <dd>Onthoudt of de mobiele swipe-hint al getoond is.</dd>
+              </div>
+              <div>
+                <dt>_ga en _ga_*</dt>
+                <dd>Google Analytics cookies. Alleen na toestemming.</dd>
+              </div>
+              <div>
+                <dt>EmailOctopus / reCAPTCHA</dt>
+                <dd>Alleen nadat je het nieuwsbrief formulier zelf laadt.</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        <footer class="legal-action">
+          <div>
+            <span>keuze aanpassen</span>
+            <p>
+              Je kan je analytics-keuze altijd opnieuw openen via de knop
+              hieronder of via de dock onderaan de site.
+            </p>
+          </div>
+          <button class="legal-pill legal-pill--primary" type="button" data-cookie-settings>
+            COOKIE-INSTELLINGEN
+          </button>
+        </footer>
       </article>
     </main>
 
