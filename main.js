@@ -97,6 +97,13 @@ const hasHomeExperience = Boolean(
     heroFrameEl,
 );
 
+function isServiceSnapPage() {
+  return (
+    document.body.classList.contains("service-page") &&
+    !document.body.classList.contains("legal-page")
+  );
+}
+
 function hasSeenIntro() {
   try {
     return window.sessionStorage?.getItem(INTRO_SEEN_KEY) === "1";
@@ -996,7 +1003,7 @@ function bindMobileSwipeSnap() {
 }
 
 function getServiceSnapTargets() {
-  if (!document.body.classList.contains("service-page")) return [];
+  if (!isServiceSnapPage()) return [];
 
   const selector = isMobile()
     ? ".service-main > .service-hero, .service-main > .service-packages, .service-main > .service-faq, .service-main > .service-cta, .service-main > .cases-section"
@@ -1064,7 +1071,7 @@ function getServicePanelKey(target, fallbackIndex = 0) {
 }
 
 function setServiceActivePanelState(index) {
-  if (!document.body.classList.contains("service-page")) return;
+  if (!isServiceSnapPage()) return;
 
   const targets = getServiceSnapTargets();
   const clampedIndex = targets.length
@@ -1167,7 +1174,7 @@ function shouldPinServiceMobileSnap() {
 }
 
 function syncServiceFixedPluses() {
-  if (!document.body.classList.contains("service-page")) return;
+  if (!isServiceSnapPage()) return;
   if (hasHomeExperience) return;
 
   const frame = document.querySelector(".service-frame");
@@ -1349,7 +1356,7 @@ function animateServicePlusesToIndex(tl, index, dy = 0, duration = SNAP_DUR, at 
 }
 
 function pulseServicePluses() {
-  if (!document.body.classList.contains("service-page")) return;
+  if (!isServiceSnapPage()) return;
 
   const offsets = {
     "service-plus--tl": [18, 18],
@@ -1378,7 +1385,7 @@ function pulseServicePluses() {
 }
 
 function syncServicePlusAnimation(force = false) {
-  if (!document.body.classList.contains("service-page")) return;
+  if (!isServiceSnapPage()) return;
   if (isMobile()) return;
   if (serviceSnapBusy) return;
 
@@ -1394,7 +1401,7 @@ function syncServicePlusAnimation(force = false) {
 }
 
 function bindServicePlusAnimation() {
-  if (!document.body.classList.contains("service-page")) return;
+  if (!isServiceSnapPage()) return;
   if (hasHomeExperience) return;
   if (document.documentElement.dataset.servicePlusAnimationBound === "1") return;
   document.documentElement.dataset.servicePlusAnimationBound = "1";
@@ -1422,7 +1429,7 @@ function bindServicePlusAnimation() {
 }
 
 function bindServiceFixedPluses() {
-  if (!document.body.classList.contains("service-page")) return;
+  if (!isServiceSnapPage()) return;
   if (hasHomeExperience) return;
   if (document.documentElement.dataset.servicePlusesBound === "1") return;
   document.documentElement.dataset.servicePlusesBound = "1";
@@ -1432,7 +1439,7 @@ function bindServiceFixedPluses() {
 }
 
 function bindServiceDesktopWheelSnap() {
-  if (!document.body.classList.contains("service-page")) return;
+  if (!isServiceSnapPage()) return;
   if (hasHomeExperience) return;
   if (document.documentElement.dataset.serviceDesktopWheelBound === "1") return;
   document.documentElement.dataset.serviceDesktopWheelBound = "1";
@@ -1469,7 +1476,7 @@ function bindServiceDesktopWheelSnap() {
 }
 
 function bindServiceMobileSwipeSnap() {
-  if (!document.body.classList.contains("service-page")) return;
+  if (!isServiceSnapPage()) return;
   if (hasHomeExperience) return;
   if (document.documentElement.dataset.serviceMobileSwipeBound === "1") return;
   document.documentElement.dataset.serviceMobileSwipeBound = "1";

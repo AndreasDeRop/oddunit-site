@@ -6,6 +6,8 @@ body.legal-page {
   --legal-title: clamp(48px, calc(var(--frameW) * 0.061), 108px);
   --legal-card-title: clamp(25px, calc(var(--frameW) * 0.026), 52px);
   overflow-x: hidden;
+  overscroll-behavior-y: auto;
+  touch-action: auto;
 }
 
 html:has(body.legal-page) {
