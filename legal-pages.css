@@ -30,7 +30,38 @@ body.legal-page .legal-frame {
 }
 
 body.legal-page .legal-frame > .service-plus {
+  position: absolute;
   z-index: 7;
+  opacity: 1;
+  visibility: visible;
+}
+
+body.legal-page .legal-frame > .service-plus--tl {
+  left: 0;
+  right: auto;
+  top: 0;
+  bottom: auto;
+}
+
+body.legal-page .legal-frame > .service-plus--tr {
+  left: auto;
+  right: 0;
+  top: 0;
+  bottom: auto;
+}
+
+body.legal-page .legal-frame > .service-plus--bl {
+  left: 0;
+  right: auto;
+  top: auto;
+  bottom: 0;
+}
+
+body.legal-page .legal-frame > .service-plus--br {
+  left: auto;
+  right: 0;
+  top: auto;
+  bottom: 0;
 }
 
 body.legal-page .legal-hero {
