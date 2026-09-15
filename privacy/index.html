@@ -26,6 +26,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="/services/service-pages.css" />
+    <link rel="stylesheet" href="/legal-pages.css" />
     <script defer src="/cookie-consent.js"></script>
   </head>
 
@@ -82,85 +83,110 @@
 
     <main class="service-main legal-main">
       <article class="legal-frame">
+        <span class="service-plus service-plus--tl" aria-hidden="true">+</span>
+        <span class="service-plus service-plus--tr" aria-hidden="true">+</span>
+        <span class="service-plus service-plus--bl" aria-hidden="true">+</span>
+        <span class="service-plus service-plus--br" aria-hidden="true">+</span>
+
         <header class="legal-hero">
-          <p class="service-kicker">PRIVACY</p>
-          <h1>Privacybeleid</h1>
-          <p>
-            Laatst bijgewerkt op 13 september 2026. Dit beleid legt uit welke
-            gegevens OddUnit Studio verwerkt wanneer je de website bezoekt of
-            contact opneemt.
-          </p>
+          <div class="legal-hero__content">
+            <p class="service-kicker">PRIVACY / ODDUNIT</p>
+            <h1>Privacy beleid</h1>
+            <p>
+              Dit is de korte, duidelijke versie van hoe we omgaan met
+              aanvragen, contactgegevens en analytics op oddunit.be.
+            </p>
+          </div>
+          <aside class="legal-hero__side" aria-label="Privacy samenvatting">
+            <span class="legal-stamp">UPDATE 13.09.2026</span>
+            <p>
+              Geen analytics zonder keuze. Geen nieuwsbriefscript zonder klik.
+              Projectgegevens gebruiken we alleen om je vraag op te volgen.
+            </p>
+            <div class="legal-actions">
+              <a class="legal-pill legal-pill--outline" href="mailto:info@oddunit.be">
+                MAIL PRIVACYVRAAG
+              </a>
+              <button class="legal-pill legal-pill--primary" type="button" data-cookie-settings>
+                COOKIEKEUZE
+              </button>
+            </div>
+          </aside>
         </header>
 
-        <section class="legal-section">
-          <h2>Wie verwerkt je gegevens?</h2>
+        <section class="legal-statement">
+          <span>kort gezegd</span>
           <p>
-            OddUnit Studio verwerkt gegevens via deze website. Je kan ons
-            bereiken via <a href="mailto:info@oddunit.be">info@oddunit.be</a>.
+            We verzamelen geen persoonsgegevens om ze door te verkopen of breed
+            te profileren. Wat je zelf doorstuurt, gebruiken we om te antwoorden,
+            samen te werken en onze administratie juist te houden.
           </p>
         </section>
 
-        <section class="legal-section">
-          <h2>Welke gegevens verwerken we?</h2>
-          <p>
-            Wanneer je een formulier invult of ons mailt, verwerken we de
-            gegevens die je zelf doorstuurt, zoals naam, e-mailadres, pakket,
-            timing, projectinformatie en je bericht. Als je analytics
-            accepteert, verwerken we ook beperkte website-statistieken.
-          </p>
-        </section>
+        <div class="legal-grid">
+          <section class="legal-card" data-index="01">
+            <h2>Wie verwerkt je gegevens?</h2>
+            <p>
+              OddUnit Studio verwerkt gegevens via deze website. Je kan ons
+              bereiken via <a href="mailto:info@oddunit.be">info@oddunit.be</a>.
+            </p>
+          </section>
 
-        <section class="legal-section">
-          <h2>Waarom gebruiken we die gegevens?</h2>
-          <p>
-            We gebruiken je gegevens om je vraag te beantwoorden, een
-            samenwerking voor te bereiden, offertes of projectinformatie op te
-            volgen en de website te verbeteren. Analytics gebruiken we alleen
-            na toestemming.
-          </p>
-        </section>
+          <section class="legal-card" data-index="02">
+            <h2>Welke gegevens?</h2>
+            <p>
+              Bij formulieren of e-mail verwerken we wat je zelf doorstuurt:
+              naam, e-mailadres, pakket, timing, projectinformatie en je
+              bericht.
+            </p>
+          </section>
 
-        <section class="legal-section">
-          <h2>Externe diensten</h2>
-          <p>
-            De website draait via Cloudflare Pages/CDN. Aanvraagformulieren
-            worden doorgestuurd via FormSubmit naar ons e-mailadres. Het
-            nieuwsbrief formulier wordt pas na jouw klik geladen via
-            EmailOctopus en kan Google reCAPTCHA gebruiken. Google Analytics
-            en Google Tag Manager laden alleen als je analytics accepteert in
-            de cookiebanner.
-          </p>
-        </section>
+          <section class="legal-card" data-index="03">
+            <h2>Waarom?</h2>
+            <p>
+              Om je vraag te beantwoorden, een samenwerking voor te bereiden,
+              offertes of projectinformatie op te volgen en de website te
+              verbeteren.
+            </p>
+          </section>
 
-        <section class="legal-section">
-          <h2>Bewaartermijn</h2>
-          <p>
-            We bewaren contact- en projectgegevens zolang dat nodig is om je
-            aanvraag op te volgen, een samenwerking uit te voeren of onze
-            administratie correct te bewaren. Cookiekeuzes worden maximaal zes
-            maanden onthouden.
-          </p>
-        </section>
+          <section class="legal-card" data-index="04">
+            <h2>Externe diensten</h2>
+            <p>
+              De site draait via Cloudflare Pages/CDN. Aanvraagformulieren gaan
+              via FormSubmit. Nieuwsbrief via EmailOctopus laadt pas na jouw
+              klik.
+            </p>
+          </section>
 
-        <section class="legal-section">
-          <h2>Je rechten</h2>
-          <p>
-            Je kan vragen om inzage, correctie, verwijdering of beperking van
-            je gegevens. Je kan analytics-toestemming altijd wijzigen via
-            <button class="legal-inline-button" type="button" data-cookie-settings>
-              cookie-instellingen
-            </button>.
-          </p>
-        </section>
+          <section class="legal-card" data-index="05">
+            <h2>Bewaartermijn</h2>
+            <p>
+              We bewaren contact- en projectgegevens zolang dat nodig is voor je
+              aanvraag, samenwerking of administratie. Cookiekeuzes blijven
+              maximaal zes maanden staan.
+            </p>
+          </section>
 
-        <section class="legal-section">
-          <h2>Klacht</h2>
-          <p>
-            Heb je een privacyvraag, mail ons eerst via
-            <a href="mailto:info@oddunit.be">info@oddunit.be</a>. Je kan ook
-            terecht bij de Belgische Gegevensbeschermingsautoriteit.
-          </p>
-        </section>
+          <section class="legal-card" data-index="06">
+            <h2>Je rechten</h2>
+            <p>
+              Je kan vragen om inzage, correctie, verwijdering of beperking van
+              je gegevens. Analytics-toestemming kan je altijd aanpassen.
+            </p>
+          </section>
+        </div>
+
+        <footer class="legal-action">
+          <div>
+            <span>vragen of klacht?</span>
+            <p>
+              Mail ons eerst via <a href="mailto:info@oddunit.be">info@oddunit.be</a>.
+              Je kan ook terecht bij de Belgische Gegevensbeschermingsautoriteit.
+            </p>
+          </div>
+          <a class="legal-pill legal-pill--primary" href="/cookies/">COOKIES BEKIJKEN</a>
+        </footer>
       </article>
     </main>
 

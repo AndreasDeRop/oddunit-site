@@ -35,6 +35,12 @@
       property="og:image:alt"
       content="ODD UNIT Studio logo op oranje achtergrond"
     />
+    <meta property="og:video" content="https://oddunit.be/projects/fons-loop.webm" />
+    <meta
+      property="og:video:secure_url"
+      content="https://oddunit.be/projects/fons-loop.webm"
+    />
+    <meta property="og:video:type" content="video/webm" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Fons resin art toy | OddUnit Studio" />
     <meta
@@ -49,21 +55,44 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "VisualArtwork",
-        "@id": "https://oddunit.be/cases/fons/#case",
-        "name": "Fons resin art toy",
-        "url": "https://oddunit.be/cases/fons/",
-        "description": "Fons is de eerste resin art toy van OddUnit Studio: een eigen karakter, ontworpen als tastbaar object en handgemaakt in het atelier.",
-        "creator": {
-          "@type": "Organization",
-          "name": "OddUnit Studio",
-          "url": "https://oddunit.be/"
-        },
-        "isPartOf": {
-          "@type": "CollectionPage",
-          "name": "Projecten en cases",
-          "url": "https://oddunit.be/cases/"
-        }
+        "@graph": [
+          {
+            "@type": "VisualArtwork",
+            "@id": "https://oddunit.be/cases/fons/#case",
+            "name": "Fons resin art toy",
+            "url": "https://oddunit.be/cases/fons/",
+            "description": "Fons is de eerste resin art toy van OddUnit Studio: een eigen karakter, ontworpen als tastbaar object en handgemaakt in het atelier.",
+            "creator": {
+              "@type": "Organization",
+              "name": "OddUnit Studio",
+              "url": "https://oddunit.be/"
+            },
+            "isPartOf": {
+              "@type": "CollectionPage",
+              "name": "Projecten en cases",
+              "url": "https://oddunit.be/cases/"
+            },
+            "video": {
+              "@id": "https://oddunit.be/cases/fons/#video"
+            }
+          },
+          {
+            "@type": "VideoObject",
+            "@id": "https://oddunit.be/cases/fons/#video",
+            "name": "Fons resin art toy video",
+            "description": "Korte video van Fons, de eerste resin art toy van OddUnit Studio, als handgemaakt karakterobject.",
+            "thumbnailUrl": "https://oddunit.be/projects/fons-poster.webp",
+            "uploadDate": "2026-05-18T14:10:29+02:00",
+            "contentUrl": "https://oddunit.be/projects/fons-loop.webm",
+            "url": "https://oddunit.be/cases/fons/",
+            "inLanguage": "nl-BE",
+            "publisher": {
+              "@type": "Organization",
+              "name": "OddUnit Studio",
+              "url": "https://oddunit.be/"
+            }
+          }
+        ]
       }
     </script>
     <link rel="stylesheet" href="/style.css" />
@@ -167,7 +196,7 @@
                   id="projectsVideoFallback"
                   src="/projects/fons-poster.webp"
                   data-fallback-src="/projects/fons-loop-ios.apng"
-                  alt=""
+                  alt="Fons resin art toy figuur met vis"
                   decoding="async"
                   loading="eager"
                 />
